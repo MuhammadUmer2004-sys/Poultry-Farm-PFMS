@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '../mainfile/main';
-import { Button, Table, Modal, Form, Input, InputNumber, notification, Card, Statistic } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+    Button,
+    Table,
+    Modal,
+    Form,
+    Input,
+    InputNumber,
+    notification,
+    Card,
+    Statistic,
+    DatePicker
+} from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import './egg-inventory.css';
-import { api } from '../../services/api';
 import moment from 'moment';
 
 interface EggInventoryRecord {
@@ -33,7 +43,7 @@ const EggInventory = () => {
     const fetchInventory = async () => {
         setLoading(true);
         try {
-            const response = await fetch    ('http://localhost:4000/api/egg-inventory', {
+            const response = await fetch('http://localhost:5000/api/egg-inventory', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 },
@@ -50,18 +60,15 @@ const EggInventory = () => {
         }
     };
 
-    const handleEdit = (record: EggInventoryRecord) => {
-        form.setFieldsValue({
-            // Remove totalEggs from here
-        });
-        setIsModalVisible(true);
-    };
-
     const handleSave = async (values: any) => {
-        const eggInventoryData = { buyer: values.buyer, quantity: values.quantity, saleDate: values.saleDate };
-        try {
+        const eggInventoryData = {
+            buyer: values.buyer,
+            quantity: values.quantity,
+            saleDate: values.saleDate ? values.saleDate.toISOString() : new Date().toISOString()
+        };
 
-            const response = await fetch('http://localhost:4000/api/egg-inventory', {
+        try {
+            const response = await fetch('http://localhost:5000/api/egg-inventory/sales', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,14 +77,21 @@ const EggInventory = () => {
                 body: JSON.stringify(eggInventoryData)
             });
 
-            if (response.ok) {
+            const result = await response.json();
+
+            if (result.success) {
                 notification.success({
                     message: 'Success',
-                    description: 'Inventory updated successfully'
+                    description: result.message || 'Inventory updated successfully'
                 });
                 setIsModalVisible(false);
                 form.resetFields();
                 fetchInventory();
+            } else {
+                notification.error({
+                    message: 'Error',
+                    description: result.message || 'Failed to update inventory'
+                });
             }
         } catch (error) {
             notification.error({
@@ -99,21 +113,8 @@ const EggInventory = () => {
             dataIndex: 'updatedAt',
             key: 'updatedAt',
             render: (date: string) => moment(date).format('YYYY-MM-DD HH:mm'),
-            sorter: (a: EggInventoryRecord, b: EggInventoryRecord) => 
+            sorter: (a: EggInventoryRecord, b: EggInventoryRecord) =>
                 moment(a.updatedAt).unix() - moment(b.updatedAt).unix()
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (_: any, record: EggInventoryRecord) => (
-                <div className="action-buttons">
-                    <Button 
-                        icon={<EditOutlined />} 
-                        type="link" 
-                        onClick={() => handleEdit(record)}
-                    />
-                </div>
-            )
         }
     ];
 
@@ -121,9 +122,9 @@ const EggInventory = () => {
         <MainLayout>
             <div className="inventory-title-primary">
                 <h1 className="inventory-title">Egg Inventory</h1>
-                <Button 
-                    type="primary" 
-                    icon={<PlusOutlined />} 
+                <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
                     onClick={() => setIsModalVisible(true)}
                 >
                     Add Sale Record
@@ -132,18 +133,19 @@ const EggInventory = () => {
 
             <div className="statistics-cards">
                 <Card>
-                    <Statistic 
-                        title="Available Eggs" 
-                        value={data.reduce((sum, record) => sum + record.remainingEggs, 0)} 
+                    <Statistic
+                        title="Available Eggs"
+                        value={data.length > 0 ? data[0].remainingEggs : 0} // ✅ Show only latest remainingEggs
                     />
                 </Card>
             </div>
 
-            <Table 
-                columns={columns} 
+            <Table
+                columns={columns}
                 dataSource={data}
                 loading={loading}
                 rowKey="_id"
+                pagination={{ pageSize: 5 }}
             />
 
             <Modal
@@ -155,30 +157,40 @@ const EggInventory = () => {
                     form.resetFields();
                 }}
             >
-                <Form 
-                    form={form} 
+                <Form
+                    form={form}
                     layout="vertical"
                     onFinish={handleSave}
                 >
                     <Form.Item
                         name={['buyer', 'name']}
                         label="Buyer Name"
+                        rules={[{ required: true, message: 'Please enter buyer name' }]}
                     >
                         <Input />
                     </Form.Item>
-                    
+
                     <Form.Item
                         name={['buyer', 'contact']}
                         label="Buyer Contact"
+                        rules={[{ required: true, message: 'Please enter contact' }]}
                     >
                         <Input />
                     </Form.Item>
-                    
+
                     <Form.Item
                         name="quantity"
                         label="Quantity Sold"
+                        rules={[{ required: true, message: 'Please enter quantity sold' }]}
                     >
-                        <InputNumber min={0} style={{ width: '100%' }} />
+                        <InputNumber min={1} style={{ width: '100%' }} />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="saleDate"
+                        label="Sale Date (optional)"
+                    >
+                        <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -186,4 +198,4 @@ const EggInventory = () => {
     );
 };
 
-export default EggInventory; 
+export default EggInventory;

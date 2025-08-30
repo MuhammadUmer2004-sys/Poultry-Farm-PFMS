@@ -1,11 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const { addFeed, updateFeedQuantity, getFeedInventory, deleteFeed, exportFeed } = require('../controllers/feedController');
+const {
+  addFeed,
+  recordFeedUsage,
+  getFeedInventory,
+  deleteFeed,
+  exportFeed,
+  updateFeed // ✅ Add updateFeed controller
+} = require('../controllers/feedController');
 
-// Feed inventory routes
-router.post('/', addFeed); // Add new feed
-router.put('/update-quantity', updateFeedQuantity); // Update feed quantity
-router.get('/', getFeedInventory); // Get all feed inventory
-router.delete('/:id', deleteFeed); // Delete a feed
-router.get('/export', exportFeed); // Export feed data
-module.exports = router; 
+const { protect } = require('../middlewares/authMiddleware');
+
+// ✅ All routes are protected (require a valid token)
+
+// ➕ Add new feed
+router.post('/', protect, addFeed);
+
+// 📝 Record feed usage
+router.post('/usage', protect, recordFeedUsage);
+
+// 📦 Get all feed inventory
+router.get('/', protect, getFeedInventory);
+
+// ✏️ Update feed by ID (NEW)
+router.put('/:id', protect, updateFeed);
+
+// 🗑️ Delete feed by ID
+router.delete('/:id', protect, deleteFeed);
+
+// 📤 Export feed data as CSV
+router.get('/export', protect, exportFeed);
+
+module.exports = router;

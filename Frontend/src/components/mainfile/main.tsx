@@ -1,62 +1,146 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Alert, Space, notification } from 'antd';
-import { FundOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, SmileOutlined, BellOutlined, DatabaseOutlined, InboxOutlined , ShoppingOutlined, TeamOutlined, DollarOutlined, MedicineBoxOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  FundOutlined, LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined,
+  SmileOutlined, BellOutlined, DatabaseOutlined, InboxOutlined,
+  TeamOutlined, DollarOutlined, MedicineBoxOutlined
+} from '@ant-design/icons';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './main.css';
 import logo from '../../assets/logo.png';
-import image1 from '../../assets/avatar.png'
+import image1 from '../../assets/avatar.png';
 
 const { Header, Sider, Content } = Layout;
 
 const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const navigate = useNavigate();
-
+  const [displayName, setDisplayName] = useState('Guest');
+  const [notifications, setNotifications] = useState([]);
+  const [shownMessages, setShownMessages] = useState<string[]>([]);
   const [api, contextHolder] = notification.useNotification();
 
-  const openNotification = () => {
-    api.open({
-      message: 'Notification Title',
-      description:
-        'Add object here',
-        icon: <SmileOutlined style={{ color: 'lightBlue' }} />,
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const name = localStorage.getItem('displayName');
+    setDisplayName(name || 'Guest');
+  }, [location.pathname]);
+
+  // ✅ Fetch notifications on load
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/notifications', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+
+        const unique = Array.from(new Map(data.map(n => [n._id, n])).values());
+        setNotifications(unique);
+
+        // ✅ Auto popup alerts for new unread (no duplicates)
+        unique.slice(0, 3).forEach(notif => {
+          if (!shownMessages.includes(notif._id)) {
+            api.open({
+              message: notif.title,
+              description: (
+                <div>
+                  {notif.message}
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => handleMarkAsRead(notif._id)}
+                    style={{ paddingLeft: 10 }}
+                  >
+                    Mark as done
+                  </Button>
+                </div>
+              ),
+              icon: <SmileOutlined style={{ color: 'lightblue' }} />,
+              placement: 'topRight',
+              duration: 5
+            });
+
+            setShownMessages(prev => [...prev, notif._id]);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+const handleMarkAsRead = async (id: string) => {
+  try {
+    const token = localStorage.getItem('token');
+    await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` }
     });
-  };
 
-  const openProfile = () => {
-    const userEmail = localStorage.getItem('email');
-    api.open({
-      message: userEmail || 'No email found',
-      icon: <UserOutlined style={{color:"lightBlue"}}/>,
+    setNotifications(prev => prev.filter(n => n._id !== id));
+  } catch (err) {
+    console.error('Failed to mark notification as read');
+  }
+};
+
+const openNotification = () => {
+  if (!notifications.length) {
+    api.info({
+      message: 'No Notifications',
+      description: 'You are all caught up!',
+      placement: 'topRight'
     });
-  };
+    return;
+  }
 
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed);
-  };
+  notifications.slice(0, 3).forEach(notif => {
+    api.open({
+      message: notif.title,
+      description: (
+        <div>
+          {notif.message}
+          <Button
+            size="small"
+            type="link"
+            onClick={() => handleMarkAsRead(notif._id)}
+            style={{ paddingLeft: 10 }}
+          >
+            Mark as Done
+          </Button>
+        </div>
+      ),
+      icon: <SmileOutlined style={{ color: 'lightblue' }} />,
+      placement: 'topRight',
+      duration: 6
+    });
+  });
+};
 
-  const handleLogoutClick = () => {
-    setShowAlert(true);
-  };
 
+  const toggleCollapsed = () => setCollapsed(!collapsed);
+
+  const handleLogoutClick = () => setShowAlert(true);
   const handleAccept = () => {
+    localStorage.clear();
     setShowAlert(false);
     navigate('/login');
   };
-
-  const handleDecline = () => {
-    setShowAlert(false);
-  };
+  const handleDecline = () => setShowAlert(false);
 
   const items = [
     {
       key: 'adminDashboard',
       icon: <FundOutlined />,
       label: <Link to="/admin/dashboard">Admin Dashboard</Link>,
-      onClick: () => navigate('/admin/dashboard')
     },
-    
     {
       key: 'dashboard',
       icon: <FundOutlined />,
@@ -132,16 +216,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           />
           <div className='notification-profile'>
             {contextHolder}
-            <Button 
-                type="text"
-                icon={<BellOutlined/>} 
-                onClick={openNotification}> 
-            </Button>
-            <Button 
-                type="text"
-                icon={<img className='profile-image' src={image1}/>} 
-                onClick={openProfile}> 
-            </Button>
+            <Button type="text" icon={<BellOutlined />} onClick={openNotification} />
+            <div className="profile-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontWeight: 500 }}>{displayName}</span>
+              <Button type="text" icon={<img className='profile-image' src={image1} />} />
+            </div>
           </div>
         </Header>
         <Content className="content">

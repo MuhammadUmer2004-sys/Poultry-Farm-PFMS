@@ -3,7 +3,6 @@ import MainLayout from '../mainfile/main';
 import { Button, Table, Modal, Form, Input, InputNumber, notification, Card, Statistic, DatePicker, Select } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import './revenue.css';
-import { api } from '../../services/api';
 import moment from 'moment';
 
 interface RevenueRecord {
@@ -35,7 +34,7 @@ const Revenue = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:4000/api/revenues', {
+      const response = await fetch('http://localhost:5000/api/revenues', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -61,22 +60,11 @@ const Revenue = () => {
 
   const calculateStatistics = (revenueData: RevenueRecord[]) => {
     const totalRevenue = revenueData.reduce((sum, record) => sum + record.amount, 0);
-    const eggSalesRevenue = revenueData
-      .filter(record => record.source === 'Egg Sales')
-      .reduce((sum, record) => sum + record.amount, 0);
-    const manureSalesRevenue = revenueData
-      .filter(record => record.source === 'Manure Sales')
-      .reduce((sum, record) => sum + record.amount, 0);
-    const otherRevenue = revenueData
-      .filter(record => record.source === 'Other')
-      .reduce((sum, record) => sum + record.amount, 0);
+    const eggSalesRevenue = revenueData.filter(r => r.source === 'Egg Sales').reduce((sum, r) => sum + r.amount, 0);
+    const manureSalesRevenue = revenueData.filter(r => r.source === 'Manure Sales').reduce((sum, r) => sum + r.amount, 0);
+    const otherRevenue = revenueData.filter(r => r.source === 'Other').reduce((sum, r) => sum + r.amount, 0);
 
-    setStatistics({
-      totalRevenue,
-      eggSalesRevenue,
-      manureSalesRevenue,
-      otherRevenue
-    });
+    setStatistics({ totalRevenue, eggSalesRevenue, manureSalesRevenue, otherRevenue });
   };
 
   const columns = [
@@ -96,7 +84,7 @@ const Revenue = () => {
       title: 'Amount ($)',
       dataIndex: 'amount',
       key: 'amount',
-      render: (amount: number) => `₹${amount.toFixed(2)}`,
+      render: (amount: number) => `$${amount.toFixed(2)}`,
       sorter: (a: RevenueRecord, b: RevenueRecord) => a.amount - b.amount
     },
     {
@@ -114,15 +102,8 @@ const Revenue = () => {
       key: 'actions',
       render: (_: any, record: RevenueRecord) => (
         <div className="action-buttons">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record._id)}
-          />
+          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)} />
         </div>
       )
     }
@@ -136,38 +117,29 @@ const Revenue = () => {
 
   const handleEdit = (record: RevenueRecord) => {
     setEditingRecord(record);
-    form.setFieldsValue({
-      ...record,
-      date: moment(record.date)
-    });
+    form.setFieldsValue({ ...record, date: moment(record.date) });
     setIsModalVisible(true);
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/api/revenues/${id}`, {
+      await fetch(`http://localhost:5000/api/revenues/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      notification.success({
-        message: 'Success',
-        description: 'Revenue record deleted successfully'
-      });
+      notification.success({ message: 'Success', description: 'Revenue record deleted successfully' });
       fetchData();
     } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to delete revenue record'
-      });
+      notification.error({ message: 'Error', description: 'Failed to delete revenue record' });
     }
   };
 
   const handleExport = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/revenues/export', {
+      const response = await fetch('http://localhost:5000/api/revenues/export', {
         method: 'GET',
         headers: {
           'Content-Type': 'text/csv',
@@ -183,10 +155,7 @@ const Revenue = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to export revenue data'
-      });
+      notification.error({ message: 'Error', description: 'Failed to export revenue data' });
     }
   };
 
@@ -197,25 +166,20 @@ const Revenue = () => {
         date: values.date.format('YYYY-MM-DD')
       };
 
-      if (editingRecord) {
-        await fetch(`http://localhost:4000/api/revenues/${editingRecord._id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify(formData)
-        });
-      } else {
-        await fetch('http://localhost:4000/api/revenues/add', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify(formData)
-        });
-      }
+      const url = editingRecord
+        ? `http://localhost:5000/api/revenues/${editingRecord._id}`
+        : 'http://localhost:5000/api/revenues/add';
+
+      const method = editingRecord ? 'PUT' : 'POST';
+
+      await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(formData)
+      });
 
       notification.success({
         message: 'Success',
@@ -225,10 +189,7 @@ const Revenue = () => {
       form.resetFields();
       fetchData();
     } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to save revenue record'
-      });
+      notification.error({ message: 'Error', description: 'Failed to save revenue record' });
     }
   };
 
@@ -238,51 +199,20 @@ const Revenue = () => {
         <div className="revenue-header">
           <h1>Revenue Management</h1>
           <div className="action-buttons">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-            >
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               Add Revenue
             </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleExport}
-            >
+            <Button icon={<DownloadOutlined />} onClick={handleExport}>
               Export
             </Button>
           </div>
         </div>
 
         <div className="statistics-cards">
-          <Card>
-            <Statistic 
-              title="Total Revenue" 
-              value={statistics.totalRevenue} 
-              prefix="$"
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Egg Sales Revenue" 
-              value={statistics.eggSalesRevenue} 
-              prefix="$"
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Manure Sales Revenue" 
-              value={statistics.manureSalesRevenue} 
-              prefix="$"
-            />
-          </Card>
-          <Card>
-            <Statistic 
-              title="Other Revenue" 
-              value={statistics.otherRevenue} 
-              prefix="$"
-            />
-          </Card>
+          <Card><Statistic title="Total Revenue" value={statistics.totalRevenue} prefix="$" precision={2} /></Card>
+          <Card><Statistic title="Egg Sales Revenue" value={statistics.eggSalesRevenue} prefix="$" precision={2} /></Card>
+          <Card><Statistic title="Manure Sales Revenue" value={statistics.manureSalesRevenue} prefix="$" precision={2} /></Card>
+          <Card><Statistic title="Other Revenue" value={statistics.otherRevenue} prefix="$" precision={2} /></Card>
         </div>
 
         <Table
@@ -290,11 +220,7 @@ const Revenue = () => {
           dataSource={data}
           loading={loading}
           rowKey="_id"
-          pagination={{
-            pageSize: 8,
-            showSizeChanger: false,
-            showQuickJumper: true,
-          }}
+          pagination={{ pageSize: 8, showSizeChanger: false, showQuickJumper: true }}
         />
 
         <Modal
@@ -307,24 +233,12 @@ const Revenue = () => {
             form.resetFields();
           }}
         >
-          <Form
-            form={form}
-            onFinish={handleSave}
-            layout="vertical"
-          >
-            <Form.Item
-              name="date"
-              label="Date"
-              rules={[{ required: true, message: 'Please select date!' }]}
-            >
+          <Form form={form} onFinish={handleSave} layout="vertical">
+            <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Please select date!' }]}>
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>
 
-            <Form.Item
-              name="source"
-              label="Source"
-              rules={[{ required: true, message: 'Please select source!' }]}
-            >
+            <Form.Item name="source" label="Source" rules={[{ required: true, message: 'Please select source!' }]}>
               <Select>
                 <Select.Option value="Egg Sales">Egg Sales</Select.Option>
                 <Select.Option value="Manure Sales">Manure Sales</Select.Option>
@@ -332,37 +246,19 @@ const Revenue = () => {
               </Select>
             </Form.Item>
 
-            <Form.Item
-              name="amount"
-              label="Amount ($)"
-              rules={[{ required: true, message: 'Please input amount!' }]}
-            >
-              <InputNumber 
-                style={{ width: '100%' }}
-                min={0}
-                step={0.01}
-                precision={2}
-              />
+            <Form.Item name="amount" label="Amount ($)" rules={[{ required: true, message: 'Please input amount!' }]}>
+              <InputNumber style={{ width: '100%' }} min={0} step={0.01} precision={2} />
             </Form.Item>
 
-            <Form.Item
-              name={['buyer', 'name']}
-              label="Buyer Name"
-            >
+            <Form.Item name={['buyer', 'name']} label="Buyer Name">
               <Input />
             </Form.Item>
 
-            <Form.Item
-              name={['buyer', 'contact']}
-              label="Buyer Contact"
-            >
+            <Form.Item name={['buyer', 'contact']} label="Buyer Contact">
               <Input />
             </Form.Item>
 
-            <Form.Item
-              name="description"
-              label="Description"
-            >
+            <Form.Item name="description" label="Description">
               <Input.TextArea rows={4} />
             </Form.Item>
           </Form>

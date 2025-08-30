@@ -6,4 +6,4 @@ const { protect } = require('../middlewares/authMiddleware');
 // User dashboard route
 router.get('/', protect, getDashboardData);
 
-module.exports = router; 
+module.exports = router;

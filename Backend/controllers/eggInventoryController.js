@@ -1,59 +1,14 @@
 const EggInventory = require('../models/EggInventory');
+const EggProduction = require('../models/EggProduction');
 
+// GET /api/egg-inventory
 exports.getEggInventory = async (req, res) => {
     try {
-        const inventory = await EggInventory.find()
-            .sort({ updatedAt: -1 });
+        const inventory = await EggInventory.find().sort({ updatedAt: -1 });
 
         res.status(200).json({
             success: true,
             data: inventory
-        });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-};
-
-exports.recordEggSale = async (req, res) => {
-    try {
-        const { buyer, quantity, saleDate } = req.body;
-
-        // Get latest inventory
-        const currentInventory = await EggInventory.findOne().sort({ createdAt: -1 });
-        
-        if (!currentInventory) {
-            return res.status(404).json({
-                success: false,
-                message: 'No inventory found'
-            });
-        }
-
-        if (quantity > currentInventory.remainingEggs) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot sell more eggs than available in inventory'
-            });
-        }
-
-        // Update inventory with sale
-        const updatedInventory = await EggInventory.findByIdAndUpdate(
-            currentInventory._id,
-            {
-                $push: {
-                    soldEggs: {
-                        buyer,
-                        quantity,
-                        saleDate
-                    }
-                },
-                $inc: { remainingEggs: -quantity }
-            },
-            { new: true }
-        );
-
-        res.status(200).json({
-            success: true,
-            data: updatedInventory
         });
     } catch (error) {
         res.status(500).json({
@@ -64,11 +19,56 @@ exports.recordEggSale = async (req, res) => {
     }
 };
 
-// Add a new method to get inventory history
+// POST /api/egg-inventory/sales
+exports.recordEggSale = async (req, res) => {
+    try {
+        const { buyer, quantity, saleDate } = req.body;
+
+        if (!buyer || !buyer.name || !quantity) {
+            return res.status(400).json({
+                success: false,
+                message: 'Buyer name and quantity are required'
+            });
+        }
+
+        // Find latest inventory
+        let inventory = await EggInventory.findOne().sort({ updatedAt: -1 });
+
+        if (!inventory || inventory.remainingEggs < quantity) {
+            return res.status(400).json({
+                success: false,
+                message: 'Not enough eggs in inventory'
+            });
+        }
+
+        inventory.soldEggs.push({
+            buyer,
+            quantity,
+            saleDate: saleDate || new Date()
+        });
+
+        inventory.remainingEggs -= quantity;
+        await inventory.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Inventory updated successfully',
+            data: inventory
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// GET /api/egg-inventory/history?startDate=...&endDate=...
 exports.getInventoryHistory = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
-        
+
         const query = {};
         if (startDate || endDate) {
             query.createdAt = {};
@@ -90,4 +90,4 @@ exports.getInventoryHistory = async (req, res) => {
             error: error.message
         });
     }
-}; 
+};

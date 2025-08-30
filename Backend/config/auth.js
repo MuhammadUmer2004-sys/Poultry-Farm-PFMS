@@ -5,7 +5,7 @@ dotenv.config();
 
 // JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRE = '24h';  // Token expiration time
+const JWT_EXPIRE = '2y';  // Token expiration time
 const REFRESH_TOKEN_EXPIRE = '7d';  // Refresh token expiration
 
 // Generate JWT token

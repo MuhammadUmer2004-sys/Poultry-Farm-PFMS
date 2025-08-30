@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import MainLayout from '../mainfile/main';
 import { Row, Col, Card, Statistic, Alert, Table, notification } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, WarningOutlined } from '@ant-design/icons';
-import { api } from '../../services/api';
+import axios from '../../utils/axiosInstance';
 import { Line } from '@ant-design/charts';
 
-import './dashboard.css';
+import './Dashboard.css';
 
 interface DashboardData {
   totalEggsProduced: number;
@@ -29,19 +29,12 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/user-dashboard', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
-      setData(data);
+      const response = await axios.get('/user-dashboard');
+      setData(response.data);
     } catch (error) {
       notification.error({
         message: 'Error',
-        description: 'Failed to fetch dashboard data'
+        description: 'Failed to fetch dashboard data',
       });
     } finally {
       setLoading(false);
@@ -55,14 +48,15 @@ const Dashboard = () => {
   if (loading) return <div>Loading...</div>;
   if (!data) return <div>No data available</div>;
 
-  // Revenue vs Expense Chart Configuration
   const trendConfig = {
     data: [...data.revenueTrends, ...data.expenseTrends].map(item => ({
       month: `${item._id.year}-${item._id.month}`,
       amount: item.total,
-      type: item.total === data.revenueTrends.find(r => 
-        r._id.year === item._id.year && r._id.month === item._id.month
-      )?.total ? 'Revenue' : 'Expense'
+      type: data.revenueTrends.find(r =>
+        r._id.year === item._id.year && r._id.month === item._id.month && r.total === item.total
+      )
+        ? 'Revenue'
+        : 'Expense'
     })),
     xField: 'month',
     yField: 'amount',
@@ -75,7 +69,6 @@ const Dashboard = () => {
       <div className="dashboard-container">
         <h1>Dashboard</h1>
 
-        {/* Alerts Section */}
         {(data.alerts.lowFeed || data.alerts.highMortality) && (
           <div className="alerts-section">
             {data.alerts.lowFeed && (
@@ -99,35 +92,18 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Statistics Cards */}
         <div className="statistics-cards">
           <Card>
-            <Statistic
-              title="Total Eggs Produced"
-              value={data.totalEggsProduced}
-              suffix="eggs"
-            />
+            <Statistic title="Total Eggs Produced" value={data.totalEggsProduced} suffix="eggs" />
           </Card>
           <Card>
-            <Statistic
-              title="Eggs in Inventory"
-              value={data.totalEggsInInventory}
-              suffix="eggs"
-            />
+            <Statistic title="Eggs in Inventory" value={data.totalEggsInInventory} suffix="eggs" />
           </Card>
           <Card>
-            <Statistic
-              title="Total Feed Used"
-              value={data.totalFeedUsed}
-              suffix="kg"
-            />
+            <Statistic title="Total Feed Used" value={data.totalFeedUsed} suffix="kg" />
           </Card>
           <Card>
-            <Statistic
-              title="Mortality Rate"
-              value={data.totalMortality}
-              suffix="birds"
-            />
+            <Statistic title="Mortality Rate" value={data.totalMortality} suffix="birds" />
           </Card>
           <Card>
             <Statistic
@@ -139,12 +115,10 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Revenue vs Expense Trend Chart */}
         <Card title="Revenue vs Expense Trends" className="chart-card">
           <Line {...trendConfig} />
         </Card>
 
-        {/* Breakdowns */}
         <Row gutter={16} className="breakdown-section">
           <Col span={12}>
             <Card title="Revenue Breakdown">
@@ -152,9 +126,9 @@ const Dashboard = () => {
                 dataSource={data.revenueBreakdown}
                 columns={[
                   { title: 'Source', dataIndex: '_id', key: 'source' },
-                  { 
-                    title: 'Amount', 
-                    dataIndex: 'total', 
+                  {
+                    title: 'Amount',
+                    dataIndex: 'total',
                     key: 'amount',
                     render: (value: number) => `$${value.toFixed(2)}`
                   }
@@ -169,9 +143,9 @@ const Dashboard = () => {
                 dataSource={data.expenseBreakdown}
                 columns={[
                   { title: 'Type', dataIndex: '_id', key: 'type' },
-                  { 
-                    title: 'Amount', 
-                    dataIndex: 'total', 
+                  {
+                    title: 'Amount',
+                    dataIndex: 'total',
                     key: 'amount',
                     render: (value: number) => `$${value.toFixed(2)}`
                   }
@@ -186,4 +160,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

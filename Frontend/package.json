@@ -10,9 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@ant-design/charts": "^2.6.1",
     "@types/chart.js": "^2.9.41",
     "@types/react-chartjs-2": "^2.5.7",
     "antd": "^5.20.0",
+    "axios": "^1.11.0",
     "chart.js": "^4.4.3",
     "pfms": "file:",
     "react": "^18.3.1",

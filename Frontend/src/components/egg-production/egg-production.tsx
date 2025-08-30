@@ -99,7 +99,7 @@ const EggProduction = () => {
                 return; // Exit the function if date is not selected
             }
 
-            const response = await fetch('http://localhost:4000/api/egg-production', {
+            const response = await fetch('http://localhost:5000/api/egg-production', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ const EggProduction = () => {
     // Delete handler
     const handleDelete = async (id: string) => {
         try {
-            const response = await fetch(`http://localhost:4000/api/egg-production/${id}`, {
+            const response = await fetch(`http://localhost:5000/api/egg-production/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -166,7 +166,7 @@ const EggProduction = () => {
     // Export handler
     const handleExport = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/egg-production/export', {
+            const response = await fetch('http://localhost:5000/api/egg-production/export', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 },

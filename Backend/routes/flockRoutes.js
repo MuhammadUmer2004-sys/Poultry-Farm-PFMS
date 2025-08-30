@@ -1,20 +1,21 @@
 const express = require('express');
-const { protect } = require('../middlewares/authMiddleware');
-const {
-    addFlock,
-    updateFlock,
-    getFlocks,
-    deleteFlock,
-    exportFlocksToCSV
-} = require('../controllers/flockController');
-
 const router = express.Router();
 
-// Flock routes
-router.post('/', protect, addFlock); // Add a new flock
-router.put('/:id', protect, updateFlock); // Update a flock
-router.get('/', protect, getFlocks); // Get all flocks
-router.delete('/:id', protect, deleteFlock); // Delete a flock
-router.get('/export', exportFlocksToCSV); // Add this line for export functionality
+const {
+  addFlock,
+  updateFlock,
+  getFlocks,
+  deleteFlock,
+  exportFlocksToCSV
+} = require('../controllers/flockController');
 
-module.exports = router; 
+const { protect } = require('../middlewares/authMiddleware');
+
+// ✅ All flock routes are protected
+router.post('/', protect, addFlock);             // ➕ Add new flock
+router.put('/:id', protect, updateFlock);        // ✏️ Update flock by ID
+router.get('/', protect, getFlocks);             // 📄 Get all flocks
+router.delete('/:id', protect, deleteFlock);     // ❌ Delete flock by ID
+router.get('/export', protect, exportFlocksToCSV); // 📤 Export CSV
+
+module.exports = router;

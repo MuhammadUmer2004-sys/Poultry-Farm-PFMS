@@ -1,8 +1,12 @@
+// ✅ Vaccination.tsx (Full Updated with Future Date Support)
+
 import { useState, useEffect } from 'react';
 import MainLayout from '../mainfile/main';
-import { Button, Table, Modal, Form, Input, notification, Select, DatePicker } from 'antd';
+import {
+  Button, Table, Modal, Form, Input, notification,
+  Select, DatePicker
+} from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { api } from '../../services/api';
 import moment from 'moment';
 import './vaccination.css';
 
@@ -17,7 +21,6 @@ interface VaccinationRecord {
 
 interface FlockOption {
   _id: string;
-  flockId: string;
   name: string;
 }
 
@@ -32,44 +35,35 @@ const Vaccination = () => {
 
   const fetchFlocks = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/flock', {
-        method: 'GET',
+      const response = await fetch('http://localhost:5000/api/flock', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        }
       });
-      const data = await response.json();
-      setFlocks(data);
-      if (data.length > 0) {
-        setSelectedFlock(data[0]._id);
+      const result = await response.json();
+      const flockList = result.data || result;
+      setFlocks(flockList);
+      if (flockList.length > 0) {
+        setSelectedFlock(flockList[0]._id);
       }
-    } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to fetch flocks'
-      });
+    } catch {
+      notification.error({ message: 'Error', description: 'Failed to fetch flocks' });
     }
   };
 
   const fetchVaccinationData = async () => {
     if (!selectedFlock) return;
-    
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:4000/api/vaccinations/${selectedFlock}`, {
-        method: 'GET',
+      const response = await fetch(`http://localhost:5000/api/vaccinations/${selectedFlock}`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await response.json();
-      setData(data.vaccinations);
-    } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to fetch vaccination data'
-      });
+      const result = await response.json();
+      setData(result.vaccinations || []);
+    } catch {
+      notification.error({ message: 'Error', description: 'Failed to fetch vaccination data' });
     } finally {
       setLoading(false);
     }
@@ -80,9 +74,7 @@ const Vaccination = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedFlock) {
-      fetchVaccinationData();
-    }
+    if (selectedFlock) fetchVaccinationData();
   }, [selectedFlock]);
 
   const columns = [
@@ -91,7 +83,7 @@ const Vaccination = () => {
       dataIndex: 'administrationDate',
       key: 'administrationDate',
       render: (date: string) => moment(date).format('YYYY-MM-DD'),
-      sorter: (a: VaccinationRecord, b: VaccinationRecord) => 
+      sorter: (a: VaccinationRecord, b: VaccinationRecord) =>
         moment(a.administrationDate).unix() - moment(b.administrationDate).unix()
     },
     {
@@ -102,22 +94,15 @@ const Vaccination = () => {
     {
       title: 'Notes',
       dataIndex: 'notes',
-      key: 'notes'
+      key: 'notes',
     },
     {
       title: 'Actions',
       key: 'actions',
       render: (_: any, record: VaccinationRecord) => (
         <div className="action-buttons">
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record._id)}
-          />
+          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)} />
         </div>
       )
     }
@@ -141,61 +126,45 @@ const Vaccination = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/api/vaccinations/${id}`, {
+      await fetch(`http://localhost:5000/api/vaccinations/${id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        }
       });
-      notification.success({
-        message: 'Success',
-        description: 'Vaccination record deleted successfully'
-      });
+      notification.success({ message: 'Success', description: 'Vaccination record deleted' });
       fetchVaccinationData();
-    } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to delete vaccination record'
-      });
+    } catch {
+      notification.error({ message: 'Error', description: 'Failed to delete record' });
     }
   };
 
   const handleSave = async (values: any) => {
+    if (!selectedFlock) return;
     setSubmitting(true);
     try {
-      const formData = {
+      const payload = {
         flockId: selectedFlock,
         vaccineType: values.vaccineType.trim(),
         administrationDate: values.administrationDate.format('YYYY-MM-DD'),
         notes: values.notes?.trim()
       };
 
-      if (values.administrationDate.isAfter(moment())) {
-        throw new Error('Cannot record vaccination for future dates');
-      }
-
-      await fetch('http://localhost:4000/api/vaccinations', {
+      await fetch('http://localhost:5000/api/vaccinations', {
         method: 'POST',
         headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
-      notification.success({
-        message: 'Success',
-        description: 'Vaccination record added successfully'
-      });
+      notification.success({ message: 'Success', description: 'Vaccination record added' });
       setIsModalVisible(false);
       form.resetFields();
       fetchVaccinationData();
-    } catch (error: any) {
-      notification.error({
-        message: 'Error',
-        description: error.message || 'Failed to save vaccination record'
-      });
+    } catch (err: any) {
+      notification.error({ message: 'Error', description: err.message || 'Failed to save record' });
     } finally {
       setSubmitting(false);
     }
@@ -205,89 +174,69 @@ const Vaccination = () => {
     <MainLayout>
       <div className="vaccination-container">
         <div className="vaccination-header">
-          <div className="header-content">
-            <h1>Vaccination Records</h1>
-            <div className="vaccination-controls">
-              <Select
-                className="flock-selector"
-                value={selectedFlock}
-                onChange={setSelectedFlock}
-                placeholder="Select Flock"
-              >
-                {flocks.map(flock => (
-                  <Select.Option key={flock._id} value={flock._id}>
-                    {flock.name || flock.flockId}
-                  </Select.Option>
-                ))}
-              </Select>
-
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAdd}
-                disabled={!selectedFlock}
-              >
-                Add Vaccination
-              </Button>
-            </div>
+          <h1>Vaccination Records</h1>
+          <div className="vaccination-controls">
+            <Select
+              className="flock-selector"
+              value={selectedFlock}
+              onChange={setSelectedFlock}
+              placeholder="Select Flock"
+            >
+              {flocks.map(flock => (
+                <Select.Option key={flock._id} value={flock._id}>
+                  {flock.name}
+                </Select.Option>
+              ))}
+            </Select>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleAdd}
+              disabled={!selectedFlock}
+            >
+              Add Vaccination
+            </Button>
           </div>
         </div>
 
-        <div className="vaccination-table">
-          <Table
-            columns={columns}
-            dataSource={data}
-            loading={loading}
-            rowKey="_id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: false,
-              showQuickJumper: true,
-            }}
-          />
-        </div>
+        <Table
+          columns={columns}
+          dataSource={data}
+          loading={loading}
+          rowKey="_id"
+          pagination={{ pageSize: 10 }}
+        />
 
         <Modal
           title="Add Vaccination Record"
           open={isModalVisible}
-          onOk={() => form.submit()}
           onCancel={() => {
             Modal.confirm({
-              title: 'Confirm',
-              content: 'Are you sure you want to cancel? Any unsaved changes will be lost.',
+              title: 'Cancel changes?',
+              content: 'Any unsaved changes will be lost.',
               onOk: () => {
-                setIsModalVisible(false);
                 form.resetFields();
+                setIsModalVisible(false);
               }
             });
           }}
+          onOk={() => form.submit()}
           confirmLoading={submitting}
           maskClosable={false}
         >
           <Form
             form={form}
-            onFinish={handleSave}
             layout="vertical"
-            className="add-record-form"
+            onFinish={handleSave}
           >
             <Form.Item
               name="administrationDate"
               label="Administration Date"
-              rules={[
-                { required: true, message: 'Please select date!' },
-                {
-                  validator: (_, value) => {
-                    if (value && value.isAfter(moment())) {
-                      return Promise.reject('Cannot select future dates');
-                    }
-                    return Promise.resolve();
-                  }
-                }
-              ]}
+              rules={[{ required: true, message: 'Please select a date!' }]}
             >
-              <DatePicker 
+              <DatePicker
                 style={{ width: '100%' }}
-                disabledDate={current => current && current > moment().endOf('day')}
+                disabledDate={() => false} // ✅ Allow all dates (future too)
               />
             </Form.Item>
 
@@ -299,11 +248,8 @@ const Vaccination = () => {
               <Input />
             </Form.Item>
 
-            <Form.Item
-              name="notes"
-              label="Notes"
-            >
-              <Input.TextArea rows={4} />
+            <Form.Item name="notes" label="Notes">
+              <Input.TextArea rows={3} />
             </Form.Item>
           </Form>
         </Modal>
@@ -312,4 +258,4 @@ const Vaccination = () => {
   );
 };
 
-export default Vaccination; 
+export default Vaccination;

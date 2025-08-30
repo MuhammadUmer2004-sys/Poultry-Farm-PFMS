@@ -6,8 +6,8 @@ const {
     recordEggSale 
 } = require('../controllers/eggInventoryController');
 
-router.route('/')
-    .get(protect, getEggInventory)
-    .post(protect, recordEggSale);
+// ✅ Fix route: POST should go to /sales
+router.get('/', protect, getEggInventory);
+router.post('/sales', protect, recordEggSale); 
 
-module.exports = router; 
+module.exports = router;

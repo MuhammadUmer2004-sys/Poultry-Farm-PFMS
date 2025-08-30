@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import MainLayout from '../mainfile/main';
 import { Card, Statistic, notification } from 'antd';
-import { api } from '../../services/api';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import './adminDashboard.css';
 
 interface AdminDashboardData {
@@ -14,26 +14,26 @@ interface AdminDashboardData {
 const AdminDashboard = () => {
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchAdminDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:4000/api/admin-dashboard/dashboard', {
+      const response = await fetch('http://localhost:5000/api/admin-dashboard/dashboard', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
       });
-      const data = await response.json();
-      if (data.data) {
-        setData(data.data);
-      } else {
-        setData(null);
-      }
+
+      if (!response.ok) throw new Error('Failed to fetch');
+      const result = await response.json();
+      if (result.data) setData(result.data);
+      else setData(null);
     } catch (error) {
       notification.error({
         message: 'Error',
-        description: 'Failed to fetch admin dashboard data'
+        description: 'Failed to fetch admin dashboard data',
       });
     } finally {
       setLoading(false);
@@ -41,7 +41,16 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    fetchAdminDashboardData();
+    const role = localStorage.getItem('displayName');
+    if (role !== 'Admin') {
+      notification.error({
+        message: 'Unauthorized',
+        description: 'You are not authorized to view this page.',
+      });
+      navigate('/dashboard');
+    } else {
+      fetchAdminDashboardData();
+    }
   }, []);
 
   if (loading) return <div>Loading...</div>;
@@ -54,11 +63,9 @@ const AdminDashboard = () => {
 
         <div className="statistics-cards">
           <Card>
-            <Statistic
-              title="Total Users"
-              value={data.totalUsers}
-            />
+            <Statistic title="Total Users" value={data.totalUsers} />
           </Card>
+
           <Card>
             <Statistic
               title="Total Eggs Produced"
@@ -66,12 +73,21 @@ const AdminDashboard = () => {
               suffix="eggs"
             />
           </Card>
+
           <Card>
             <Statistic
               title="Total Profits"
               value={data.totalProfits}
-              valueStyle={{ color: data.totalProfits >= 0 ? '#3f8600' : '#cf1322' }}
-              prefix={data.totalProfits >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+              precision={2}
+              valueStyle={{
+                color: data.totalProfits >= 0 ? '#3f8600' : '#cf1322',
+              }}
+              prefix={
+                <>
+                  {data.totalProfits >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                  &nbsp;$ 
+                </>
+              }
             />
           </Card>
         </div>
@@ -80,4 +96,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

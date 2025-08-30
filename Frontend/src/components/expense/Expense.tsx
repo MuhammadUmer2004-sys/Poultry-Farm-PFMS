@@ -24,7 +24,7 @@ const Expense = () => {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:4000/api/expenses', {
+      const response = await fetch('http://localhost:5000/api/expenses', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const Expense = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:4000/api/expenses/${id}`, {
+      await fetch(`http://localhost:5000/api/expenses/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -144,7 +144,7 @@ const Expense = () => {
         description: values.description?.trim()
       };
 
-      await fetch('http://localhost:4000/api/expenses/add', {
+      await fetch('http://localhost:5000/api/expenses/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

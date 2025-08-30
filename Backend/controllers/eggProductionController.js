@@ -3,63 +3,69 @@ const EggInventory = require('../models/EggInventory');
 const { validatePaginationParams, getPaginationMetadata } = require('../utils/pagination');
 const { Parser } = require('json2csv');
 
+// ✅ Add or Update Egg Production
 exports.addEggProduction = async (req, res) => {
     try {
         const { date, totalEggs, notes } = req.body;
 
-        // Check if a record for the date already exists
-        const existingRecord = await EggProduction.findOne({ 
-            date: new Date(date).toISOString().split('T')[0] 
-        });
-        
-        if (existingRecord) {
-            // Update existing record
-            const updatedRecord = await EggProduction.findOneAndUpdate(
-                { date: new Date(date).toISOString().split('T')[0] },
-                { totalEggs, notes },
-                { new: true } // Return the updated document
-            );
+        const formattedDate = new Date(date).toISOString().split('T')[0];
 
-            return res.status(200).json({ 
-                success: true,
-                data: updatedRecord,
-                message: 'Production record updated successfully' 
+        // Check if production already exists for this date
+        const existingProduction = await EggProduction.findOne({ 
+            date: formattedDate 
+        });
+
+        let eggProduction;
+
+        if (existingProduction) {
+            // Update existing production record
+            eggProduction = await EggProduction.findOneAndUpdate(
+                { date: formattedDate },
+                { totalEggs, notes },
+                { new: true }
+            );
+        } else {
+            // Create new production record
+            eggProduction = await EggProduction.create({ 
+                date: formattedDate, 
+                totalEggs, 
+                notes 
             });
         }
 
-        // Create egg production record
-        const eggProduction = await EggProduction.create({ 
-            date, 
-            totalEggs, 
-            notes 
-        });
+        // ✅ Update inventory
+        const latestInventory = await EggInventory.findOne().sort({ createdAt: -1 });
 
-        // Update egg inventory
-        const inventory = await EggInventory.findOne().sort({ createdAt: -1 });
-        
-        const newInventory = await EggInventory.create({
-            totalEggs: (inventory?.remainingEggs || 0) + totalEggs,
-            remainingEggs: (inventory?.remainingEggs || 0) + totalEggs,
-            productionDate: date,
-            soldEggs: []
-        });
+        if (latestInventory) {
+            // Update existing inventory
+            latestInventory.remainingEggs += totalEggs;
+            latestInventory.totalEggs += totalEggs;
+            await latestInventory.save();
+        } else {
+            // Create new inventory if none exists
+            await EggInventory.create({
+                totalEggs,
+                remainingEggs: totalEggs,
+                productionDate: formattedDate,
+                soldEggs: []
+            });
+        }
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
-            data: {
-                production: eggProduction,
-                inventory: newInventory
-            }
+            message: existingProduction ? 'Production updated and inventory adjusted' : 'Production added and inventory updated',
+            data: { production: eggProduction }
         });
     } catch (error) {
         res.status(500).json({ 
             success: false,
-            message: 'Server error', 
+            message: 'Server error',
             error: error.message 
         });
     }
 };
 
+// ✅ Paginated GET /api/egg-production
 exports.getEggProductionRecords = async (req, res) => {
     try {
         const { page, limit } = req.query;
@@ -79,10 +85,14 @@ exports.getEggProductionRecords = async (req, res) => {
             pagination: paginationMetadata
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 };
 
+// ✅ Export to CSV
 exports.exportEggProduction = async (req, res) => {
     try {
         const eggProductions = await EggProduction.find();
@@ -95,20 +105,22 @@ exports.exportEggProduction = async (req, res) => {
         const json2csvParser = new Parser({ fields });
         const csv = json2csvParser.parse(eggProductions);
 
-        // Set headers to force download
         res.header('Content-Type', 'text/csv');
         res.header('Content-Disposition', 'attachment; filename="egg-production.csv"');
         res.send(csv);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
 };
 
+// ✅ Delete Production by ID
 exports.deleteEggProduction = async (req, res) => {
     try {
-        const { id } = req.params; // Get the ID from the request parameters
+        const { id } = req.params;
 
-        // Find and delete the egg production record
         const deletedRecord = await EggProduction.findByIdAndDelete(id);
         
         if (!deletedRecord) {
@@ -121,6 +133,9 @@ exports.deleteEggProduction = async (req, res) => {
             data: deletedRecord
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ 
+            message: 'Server error', 
+            error: error.message 
+        });
     }
-}; 
+};
