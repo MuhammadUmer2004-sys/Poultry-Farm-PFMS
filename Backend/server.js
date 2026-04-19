@@ -19,6 +19,7 @@ app.use(express.json());
 
 // ✅ MongoDB Connection (no process.exit - breaks Vercel serverless)
 let isConnected = false;
+let lastError = null;
 
 const connectDB = async () => {
   if (isConnected) return;
@@ -26,10 +27,13 @@ const connectDB = async () => {
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 10000,
     });
     isConnected = true;
+    lastError = null;
     console.log('✅ MongoDB connected');
   } catch (err) {
+    lastError = err.message;
     console.error('❌ MongoDB connection error:', err.message);
     // Do NOT call process.exit() - it crashes Vercel serverless functions
   }
@@ -53,7 +57,13 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 // ✅ Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', db: isConnected ? 'connected' : 'disconnected' });
+  res.json({
+    status: 'OK',
+    db: isConnected ? 'connected' : 'disconnected',
+    error: lastError || null,
+    mongo_uri_set: !!process.env.MONGO_URI,
+    uri_preview: process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 30) + '...' : 'NOT SET'
+  });
 });
 
 // ✅ Route Mounting
