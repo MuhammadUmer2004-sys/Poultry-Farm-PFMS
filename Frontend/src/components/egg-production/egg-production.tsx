@@ -141,11 +141,11 @@ const EggProduction = () => {
     };
 
     const columns = [
-        { title: 'Date', dataIndex: 'date', key: 'date', render: (text: string) => moment(text).format('DD/MM/YYYY') },
+        { title: 'Date', dataIndex: 'date', key: 'date', render: (text: string) => text ? moment(text).format('DD/MM/YYYY') : 'N/A' },
         { title: 'Flock Name', dataIndex: 'flockName', key: 'flockName' },
         { title: 'Total Eggs', dataIndex: 'totalEggs', key: 'totalEggs' },
-        { title: 'Crack Eggs', dataIndex: 'crackEggs', key: 'crackEggs' },
-        { title: 'Good Eggs', dataIndex: 'goodEggs', key: 'goodEggs' },
+        { title: 'Crack Eggs', dataIndex: 'crackEggs', key: 'crackEggs', render: (val: number) => val ?? 0 },
+        { title: 'Good Eggs', dataIndex: 'goodEggs', key: 'goodEggs', render: (val: number) => val ?? 0 },
         {
             title: 'Actions',
             key: 'actions',
@@ -161,57 +161,59 @@ const EggProduction = () => {
     ];
 
     return (
-        <div className="egg-production-container">
-            <Card title="🥚 Egg Production Tracking" extra={
-                <Space>
-                    <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>Add Record</Button>
-                </Space>
-            }>
-                <Row gutter={16} className="stats-row">
-                    <Col span={8}>
-                        <Card small-card="true">
-                            <h3>Total Produced (Today)</h3>
-                            <p className="stat-val">{data.length > 0 ? data[0].totalEggs : 0}</p>
-                        </Card>
-                    </Col>
-                </Row>
+        <MainLayout>
+            <div className="egg-production-container">
+                <Card title="🥚 Egg Production Tracking" extra={
+                    <Space>
+                        <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>Add Record</Button>
+                    </Space>
+                }>
+                    <Row gutter={16} className="stats-row">
+                        <Col span={8}>
+                            <Card small-card="true">
+                                <h3>Total Produced (Today)</h3>
+                                <p className="stat-val">{data && data.length > 0 ? data[0].totalEggs : 0}</p>
+                            </Card>
+                        </Col>
+                    </Row>
 
-                <Table
-                    columns={columns}
-                    dataSource={data}
-                    rowKey="_id"
-                    loading={loading}
-                    pagination={{ pageSize: 7 }}
-                />
+                    <Table
+                        columns={columns}
+                        dataSource={data}
+                        rowKey="_id"
+                        loading={loading}
+                        pagination={{ pageSize: 7 }}
+                    />
 
-                <Modal
-                    title={editingId ? 'Edit Record' : 'Add Production Record'}
-                    open={isModalVisible}
-                    onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
-                    footer={null}
-                >
-                    <Form form={form} layout="vertical" onFinish={editingId ? handleAddOrUpdate : handleFormSubmit}>
-                        <Form.Item name="date" label="Date" rules={[{ required: true }]}>
-                            <DatePicker style={{ width: '100%' }} />
-                        </Form.Item>
-                        <Form.Item name="flockName" label="Flock Name" rules={[{ required: true }]}>
-                            <Input placeholder="Enter Flock ID or Name" />
-                        </Form.Item>
-                        <Form.Item name="totalEggs" label="Total Eggs" rules={[{ required: true }]}>
-                            <InputNumber style={{ width: '100%' }} min={0} />
-                        </Form.Item>
-                        <Form.Item name="crackEggs" label="Cracked Eggs" rules={[{ required: true }]}>
-                            <InputNumber style={{ width: '100%' }} min={0} />
-                        </Form.Item>
-                        <Form.Item name="goodEggs" label="Good Eggs" rules={[{ required: true }]}>
-                            <InputNumber style={{ width: '100%' }} min={0} />
-                        </Form.Item>
-                        <Button type="primary" htmlType="submit" block>Save Record</Button>
-                    </Form>
-                </Modal>
-            </Card>
-        </div>
+                    <Modal
+                        title={editingId ? 'Edit Record' : 'Add Production Record'}
+                        open={isModalVisible}
+                        onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
+                        footer={null}
+                    >
+                        <Form form={form} layout="vertical" onFinish={editingId ? handleAddOrUpdate : handleFormSubmit}>
+                            <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+                                <DatePicker style={{ width: '100%' }} />
+                            </Form.Item>
+                            <Form.Item name="flockName" label="Flock Name" rules={[{ required: true }]}>
+                                <Input placeholder="Enter Flock ID or Name" />
+                            </Form.Item>
+                            <Form.Item name="totalEggs" label="Total Eggs" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                            <Form.Item name="crackEggs" label="Cracked Eggs" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                            <Form.Item name="goodEggs" label="Good Eggs" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                            <Button type="primary" htmlType="submit" block>Save Record</Button>
+                        </Form>
+                    </Modal>
+                </Card>
+            </div>
+        </MainLayout>
     );
 };
 

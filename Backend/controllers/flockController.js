@@ -4,8 +4,7 @@ const Flock = require('../models/Flock');
 // ➕ Add a new flock
 exports.addFlock = async (req, res) => {
   try {
-    const { name, breed, numberOfHens, healthStatus } = req.body;
-
+    const { name, breed, numberOfHens, healthStatus, acquisitionDate } = req.body;
     if (!name || !breed || numberOfHens == null || !healthStatus) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
@@ -15,7 +14,7 @@ exports.addFlock = async (req, res) => {
       breed,
       numberOfHens,
       healthStatus,
-      createdAt: new Date()
+      acquisitionDate: acquisitionDate || new Date()
     });
 
     const savedFlock = await newFlock.save();
@@ -28,11 +27,11 @@ exports.addFlock = async (req, res) => {
 // ✏️ Update a flock by ID
 exports.updateFlock = async (req, res) => {
   try {
-    const { name, breed, numberOfHens, healthStatus } = req.body;
+    const { name, breed, numberOfHens, healthStatus, acquisitionDate } = req.body;
 
     const updated = await Flock.findByIdAndUpdate(
       req.params.id,
-      { name, breed, numberOfHens, healthStatus },
+      { name, breed, numberOfHens, healthStatus, acquisitionDate },
       { new: true }
     );
 

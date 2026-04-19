@@ -41,13 +41,13 @@ const Signup = () => {
       if (response.ok) {
         localStorage.setItem('token', result.token);
         localStorage.setItem('email', email);
-        localStorage.setItem('password', password);
-
+        localStorage.setItem('displayName', 'User'); // ✅ Set display name for MainLayout
+        
         notification.success({
           message: 'Signup Successful',
           description: 'You have successfully signed up!',
         });
-        navigate('/expenses');
+        navigate('/dashboard'); // ✅ Navigate to dashboard instead of expenses for better first impression
       } else {
         notification.error({
           message: 'Signup Failed',

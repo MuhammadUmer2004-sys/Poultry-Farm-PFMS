@@ -45,15 +45,15 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (!data) return <div>No data available</div>;
+  if (loading) return <div style={{ padding: 20 }}>Loading Dashboard...</div>;
+  if (!data || (data as any).error) return <div style={{ padding: 20 }}><Alert type="error" message="Error loading dashboard" description={(data as any)?.error || "No data available"} /></div>;
 
   const trendConfig = {
-    data: [...data.revenueTrends, ...data.expenseTrends].map(item => ({
-      month: `${item._id.year}-${item._id.month}`,
-      amount: item.total,
-      type: data.revenueTrends.find(r =>
-        r._id.year === item._id.year && r._id.month === item._id.month && r.total === item.total
+    data: [...(data.revenueTrends || []), ...(data.expenseTrends || [])].map(item => ({
+      month: item._id ? `${item._id.year}-${item._id.month}` : 'Unknown',
+      amount: item.total || 0,
+      type: (data.revenueTrends || []).some(r =>
+        r._id && item._id && r._id.year === item._id.year && r._id.month === item._id.month && r.total === item.total
       )
         ? 'Revenue'
         : 'Expense'
@@ -64,14 +64,16 @@ const Dashboard = () => {
     smooth: true,
   };
 
+  const alerts = data.alerts || { lowFeed: false, highMortality: false };
+
   return (
     <MainLayout>
       <div className="dashboard-container">
         <h1>Dashboard</h1>
 
-        {(data.alerts.lowFeed || data.alerts.highMortality) && (
+        {(alerts.lowFeed || alerts.highMortality) && (
           <div className="alerts-section">
-            {data.alerts.lowFeed && (
+            {alerts.lowFeed && (
               <Alert
                 message="Low Feed Alert"
                 description="Feed stock is running low. Please restock soon."
@@ -80,7 +82,7 @@ const Dashboard = () => {
                 icon={<WarningOutlined />}
               />
             )}
-            {data.alerts.highMortality && (
+            {alerts.highMortality && (
               <Alert
                 message="High Mortality Alert"
                 description="Unusually high mortality rate detected."
@@ -94,23 +96,23 @@ const Dashboard = () => {
 
         <div className="statistics-cards">
           <Card>
-            <Statistic title="Total Eggs Produced" value={data.totalEggsProduced} suffix="eggs" />
+            <Statistic title="Total Eggs Produced" value={data.totalEggsProduced || 0} suffix="eggs" />
           </Card>
           <Card>
-            <Statistic title="Eggs in Inventory" value={data.totalEggsInInventory} suffix="eggs" />
+            <Statistic title="Eggs in Inventory" value={data.totalEggsInInventory || 0} suffix="eggs" />
           </Card>
           <Card>
-            <Statistic title="Total Feed Used" value={data.totalFeedUsed} suffix="kg" />
+            <Statistic title="Total Feed Used" value={data.totalFeedUsed || 0} suffix="kg" />
           </Card>
           <Card>
-            <Statistic title="Mortality Rate" value={data.totalMortality} suffix="birds" />
+            <Statistic title="Mortality Rate" value={data.totalMortality || 0} suffix="birds" />
           </Card>
           <Card>
             <Statistic
               title="Total Profits"
-              value={data.totalProfits}
-              valueStyle={{ color: data.totalProfits >= 0 ? '#3f8600' : '#cf1322' }}
-              prefix={data.totalProfits >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+              value={data.totalProfits || 0}
+              valueStyle={{ color: (data.totalProfits || 0) >= 0 ? '#3f8600' : '#cf1322' }}
+              prefix={(data.totalProfits || 0) >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
             />
           </Card>
         </div>
@@ -123,14 +125,15 @@ const Dashboard = () => {
           <Col span={12}>
             <Card title="Revenue Breakdown">
               <Table
-                dataSource={data.revenueBreakdown}
+                dataSource={Array.isArray(data.revenueBreakdown) ? data.revenueBreakdown : []}
+                rowKey={(record) => record._id || Math.random()}
                 columns={[
                   { title: 'Source', dataIndex: '_id', key: 'source' },
                   {
                     title: 'Amount',
                     dataIndex: 'total',
                     key: 'amount',
-                    render: (value: number) => `$${value.toFixed(2)}`
+                    render: (value: number) => `$${(value || 0).toFixed(2)}`
                   }
                 ]}
                 pagination={false}
@@ -140,14 +143,15 @@ const Dashboard = () => {
           <Col span={12}>
             <Card title="Expense Breakdown">
               <Table
-                dataSource={data.expenseBreakdown}
+                dataSource={Array.isArray(data.expenseBreakdown) ? data.expenseBreakdown : []}
+                rowKey={(record) => record._id || Math.random()}
                 columns={[
                   { title: 'Type', dataIndex: '_id', key: 'type' },
                   {
                     title: 'Amount',
                     dataIndex: 'total',
                     key: 'amount',
-                    render: (value: number) => `$${value.toFixed(2)}`
+                    render: (value: number) => `$${(value || 0).toFixed(2)}`
                   }
                 ]}
                 pagination={false}

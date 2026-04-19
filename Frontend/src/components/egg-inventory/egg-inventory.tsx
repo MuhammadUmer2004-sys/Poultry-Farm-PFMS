@@ -50,12 +50,15 @@ const EggInventory = () => {
                 },
             });
             const result = await response.json();
-            setData(result.data);
+            // Backend returns single object, wrap in array for Table
+            const inventoryData = result.data ? [result.data] : [];
+            setData(inventoryData);
         } catch (error) {
             notification.error({
                 message: 'Error',
                 description: 'Failed to fetch inventory data'
             });
+            setData([]);
         } finally {
             setLoading(false);
         }

@@ -40,8 +40,9 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
           }
         });
         const data = await res.json();
-
-        const unique = Array.from(new Map(data.map((n: any) => [n._id, n])).values());
+        const notificationsArray = Array.isArray(data) ? data : (data.data && Array.isArray(data.data) ? data.data : []);
+        
+        const unique = Array.from(new Map(notificationsArray.map((n: any) => [n._id, n])).values());
         setNotifications(unique);
 
         // ✅ Auto popup alerts for new unread (no duplicates)

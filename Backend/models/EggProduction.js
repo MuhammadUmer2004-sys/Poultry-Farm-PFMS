@@ -17,6 +17,18 @@ const eggProductionSchema = new mongoose.Schema({
         required: true,
         min: [0, 'Total eggs cannot be negative']
     },
+    flockName: {
+        type: String,
+        trim: true
+    },
+    crackEggs: {
+        type: Number,
+        default: 0
+    },
+    goodEggs: {
+        type: Number,
+        default: 0
+    },
     notes: {
         type: String,
         maxLength: [500, 'Notes cannot exceed 500 characters']

@@ -3,6 +3,7 @@ import { Table, Button, Modal, Form, Input, InputNumber, Select, notification, P
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import './flock.css';
 import { api, BASE_URL } from '../../services/api';
+import MainLayout from '../mainfile/main';
 
 const { Option } = Select;
 
@@ -18,9 +19,10 @@ const Flock = () => {
         setLoading(true);
         try {
             const response = await api.get('/flock');
-            setData(response.data);
+            setData(response.data || []);
         } catch (err) {
             notification.error({ message: 'Error', description: 'Failed to fetch flocks' });
+            setData([]);
         } finally {
             setLoading(false);
         }
@@ -33,25 +35,43 @@ const Flock = () => {
     // Handlers
     const handleAddOrUpdate = async (values: any) => {
         try {
+            // Map frontend fields to backend schema
+            const payload = {
+                name: values.name,
+                breed: values.breed,
+                numberOfHens: values.numberOfHens,
+                healthStatus: values.healthStatus,
+                acquisitionDate: values.acquisitionDate
+            };
+
             if (editingId) {
-                await api.put(`/flock/${editingId}`, values);
+                await api.put(`/flock/${editingId}`, payload);
                 notification.success({ message: 'Success', description: 'Flock updated' });
             } else {
-                await api.post('/flock', values);
+                await api.post('/flock', payload);
                 notification.success({ message: 'Success', description: 'Flock added' });
             }
             setIsModalVisible(false);
             setEditingId(null);
             form.resetFields();
             fetchFlocks();
-        } catch (err) {
-            notification.error({ message: 'Error', description: 'Operation failed' });
+        } catch (err: any) {
+            notification.error({ 
+                message: 'Error', 
+                description: err.message || 'Operation failed' 
+            });
         }
     };
 
     const handleEdit = (record: any) => {
         setEditingId(record._id);
-        form.setFieldsValue(record);
+        form.setFieldsValue({
+            name: record.name,
+            breed: record.breed,
+            numberOfHens: record.numberOfHens,
+            healthStatus: record.healthStatus,
+            acquisitionDate: record.acquisitionDate ? record.acquisitionDate.split('T')[0] : ''
+        });
         setIsModalVisible(true);
     };
 
@@ -76,23 +96,25 @@ const Flock = () => {
     const columns = [
         {
             title: 'Flock ID',
-            dataIndex: 'flockId',
-            key: 'flockId',
-            sorter: (a: any, b: any) => a.flockId.localeCompare(b.flockId)
+            dataIndex: 'name',
+            key: 'name',
+            sorter: (a: any, b: any) => (a.name || '').localeCompare(b.name || '')
         },
         {
             title: 'Breed',
             dataIndex: 'breed',
             key: 'breed',
-            sorter: (a: any, b: any) => a.breed.localeCompare(b.breed)
+            sorter: (a: any, b: any) => (a.breed || '').localeCompare(b.breed || '')
         },
-        { title: 'Quantity', dataIndex: 'initialQuantity', key: 'initialQuantity' },
+        { title: 'Birds', dataIndex: 'numberOfHens', key: 'numberOfHens' },
         {
             title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
+            dataIndex: 'healthStatus',
+            key: 'healthStatus',
             render: (status: string) => (
-                <Tag color={status === 'Active' ? 'green' : 'red'}>{status.toUpperCase()}</Tag>
+                <Tag color={status === 'Healthy' ? 'green' : (status === 'Sick' ? 'red' : 'orange')}>
+                    {(status || 'Unknown').toUpperCase()}
+                </Tag>
             )
         },
         {
@@ -110,51 +132,54 @@ const Flock = () => {
     ];
 
     return (
-        <div className="flock-container">
-            <Card title="🐣 Flock Management" extra={
-                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
-                    New Flock
-                </Button>
-            }>
-                <Table
-                    columns={columns}
-                    dataSource={data}
-                    rowKey="_id"
-                    loading={loading}
-                    pagination={{ pageSize: 8 }}
-                />
+        <MainLayout>
+            <div className="flock-container">
+                <Card title="🐣 Flock Management" extra={
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingId(null); form.resetFields(); setIsModalVisible(true); }}>
+                        New Flock
+                    </Button>
+                }>
+                    <Table
+                        columns={columns}
+                        dataSource={data}
+                        rowKey="_id"
+                        loading={loading}
+                        pagination={{ pageSize: 8 }}
+                    />
 
-                <Modal
-                    title={editingId ? 'Edit Flock' : 'Add New Flock'}
-                    open={isModalVisible}
-                    onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
-                    footer={null}
-                >
-                    <Form form={form} layout="vertical" onFinish={handleAddOrUpdate}>
-                        <Form.Item name="flockId" label="Flock ID" rules={[{ required: true }]}>
-                            <Input placeholder="e.g. FLK-001" />
-                        </Form.Item>
-                        <Form.Item name="breed" label="Breed" rules={[{ required: true }]}>
-                            <Input placeholder="e.g. White Leghorn" />
-                        </Form.Item>
-                        <Form.Item name="initialQuantity" label="Quantity" rules={[{ required: true }]}>
-                            <InputNumber style={{ width: '100%' }} min={1} />
-                        </Form.Item>
-                        <Form.Item name="acquisitionDate" label="Acquisition Date" rules={[{ required: true }]}>
-                            <Input type="date" />
-                        </Form.Item>
-                        <Form.Item name="status" label="Status" initialValue="Active">
-                            <Select>
-                                <Option value="Active">Active</Option>
-                                <Option value="Sold">Sold</Option>
-                                <Option value="Dead">Inactive</Option>
-                            </Select>
-                        </Form.Item>
-                        <Button type="primary" htmlType="submit" block>Save Flock</Button>
-                    </Form>
-                </Modal>
-            </Card>
-        </div>
+                    <Modal
+                        title={editingId ? 'Edit Flock' : 'Add New Flock'}
+                        open={isModalVisible}
+                        onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
+                        footer={null}
+                    >
+                        <Form form={form} layout="vertical" onFinish={handleAddOrUpdate}>
+                            <Form.Item name="name" label="Flock ID" rules={[{ required: true }]}>
+                                <Input placeholder="e.g. 1" />
+                            </Form.Item>
+                            <Form.Item name="breed" label="Breed" rules={[{ required: true }]}>
+                                <Input placeholder="e.g. white" />
+                            </Form.Item>
+                            <Form.Item name="numberOfHens" label="Quantity" rules={[{ required: true }]}>
+                                <InputNumber style={{ width: '100%' }} min={1} />
+                            </Form.Item>
+                            <Form.Item name="acquisitionDate" label="Acquisition Date" rules={[{ required: true }]}>
+                                <Input type="date" />
+                            </Form.Item>
+                            <Form.Item name="healthStatus" label="Status" initialValue="Active">
+                                <Select>
+                                    <Option value="Active">Active</Option>
+                                    <Option value="Healthy">Healthy</Option>
+                                    <Option value="Sick">Sick</Option>
+                                    <Option value="Inactive">Inactive</Option>
+                                </Select>
+                            </Form.Item>
+                            <Button type="primary" htmlType="submit" block>Save Flock</Button>
+                        </Form>
+                    </Modal>
+                </Card>
+            </div>
+        </MainLayout>
     );
 };
 

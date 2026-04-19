@@ -6,7 +6,7 @@ const { Parser } = require('json2csv');
 // ✅ Add or Update Egg Production
 exports.addEggProduction = async (req, res) => {
     try {
-        const { date, totalEggs, notes } = req.body;
+        const { date, totalEggs, flockName, crackEggs, goodEggs, notes } = req.body;
 
         const formattedDate = new Date(date).toISOString().split('T')[0];
 
@@ -21,7 +21,7 @@ exports.addEggProduction = async (req, res) => {
             // Update existing production record
             eggProduction = await EggProduction.findOneAndUpdate(
                 { date: formattedDate },
-                { totalEggs, notes },
+                { totalEggs, flockName, crackEggs, goodEggs, notes },
                 { new: true }
             );
         } else {
@@ -29,6 +29,9 @@ exports.addEggProduction = async (req, res) => {
             eggProduction = await EggProduction.create({ 
                 date: formattedDate, 
                 totalEggs, 
+                flockName,
+                crackEggs,
+                goodEggs,
                 notes 
             });
         }

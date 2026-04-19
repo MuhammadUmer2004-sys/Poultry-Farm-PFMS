@@ -9,8 +9,17 @@ const {
     deleteEggProduction
 } = require('../controllers/eggProductionController');
 
-// ✅ Route: POST /api/egg-production → Add or Update Production and Sync Inventory
+// ✅ Route: POST /api/egg-production → Add record
 router.post('/', protect, addEggProduction);
+
+// ✅ Route: PUT /api/egg-production/:id → Update record
+router.put('/:id', protect, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updated = await require('../models/EggProduction').findByIdAndUpdate(id, req.body, { new: true });
+        res.status(200).json({ success: true, data: updated });
+    } catch (err) { next(err); }
+});
 
 // ✅ Route: GET /api/egg-production → Paginated List of Records
 router.get('/', protect, getEggProductionRecords);

@@ -9,13 +9,20 @@ export const api = {
             ...options.headers,
         };
 
-        const response = await fetch(`${BASE_URL}${endpoint}`, {
+        const response = await fetch(`${BASE_URL}/${endpoint.startsWith('/') ? endpoint.slice(1) : endpoint}`, {
             ...options,
             headers,
         });
 
+        if (response.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+            throw new Error('Session expired. Please login again.');
+        }
+
         if (!response.ok) {
-            throw new Error('API request failed');
+            const errorBody = await response.json().catch(() => ({}));
+            throw new Error(errorBody.message || 'API request failed');
         }
 
         return response.json();

@@ -16,8 +16,12 @@ const flockSchema = new mongoose.Schema({
   },
   healthStatus: {
     type: String,
-    enum: ['Healthy', 'Sick', 'Quarantined'],
+    enum: ['Healthy', 'Sick', 'Quarantined', 'Active', 'Inactive'],
     default: 'Healthy'
+  },
+  acquisitionDate: {
+    type: Date,
+    default: Date.now
   },
   vaccinationRecords: [
     {
