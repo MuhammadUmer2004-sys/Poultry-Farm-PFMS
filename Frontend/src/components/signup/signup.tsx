@@ -12,7 +12,7 @@ const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [api, contextHolder] = notification.useNotification();
+  const [, contextHolder] = notification.useNotification();
 
   const navigate = useNavigate();
 
@@ -56,8 +56,8 @@ const Signup = () => {
       }
     } catch (error) {
       notification.error({
-        message: 'Error occurred',
-        description: 'Failed to connect to the server. Please try again later.',
+          message: 'Error occurred',
+          description: 'Failed to connect to the server. Please try again later.',
       });
     }
   };

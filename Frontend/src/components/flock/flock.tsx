@@ -1,241 +1,161 @@
 import { useState, useEffect } from 'react';
-import MainLayout from '../mainfile/main';
-import { Button, Table, Modal, Form, Input, Select, notification, Card, Statistic } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, InputNumber, Select, notification, Popconfirm, Card, Tag, Space } from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import './flock.css';
-import moment from 'moment';
-import { BASE_URL } from '../../services/api';
+import { api, BASE_URL } from '../../services/api';
 
-interface FlockRecord {
-  _id: string;
-  name: string;
-  breed: string;
-  numberOfHens: number;
-  healthStatus: 'Healthy' | 'Sick' | 'Quarantined';
-  vaccinationRecords: string[];
-  mortalityRecords: string[];
-  createdAt: string;
-}
+const { Option } = Select;
 
 const Flock = () => {
-  const [data, setData] = useState<FlockRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<FlockRecord | null>(null);
-  const [form] = Form.useForm();
-  const [statistics, setStatistics] = useState({
-    totalHens: 0,
-    healthyFlocks: 0,
-    sickFlocks: 0,
-    quarantinedFlocks: 0
-  });
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [form] = Form.useForm();
+    const [editingId, setEditingId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${BASE_URL}/flock`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const result = await response.json();
-
-      // ✅ Correctly extract data
-      setData(result.data);
-      calculateStatistics(result.data);
-    } catch (error) {
-      notification.error({
-        message: 'Error',
-        description: 'Failed to fetch flock data'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const calculateStatistics = (flockData: FlockRecord[]) => {
-    const totalHens = flockData.reduce((sum, flock) => sum + flock.numberOfHens, 0);
-    const healthyFlocks = flockData.filter(flock => flock.healthStatus === 'Healthy').length;
-    const sickFlocks = flockData.filter(flock => flock.healthStatus === 'Sick').length;
-    const quarantinedFlocks = flockData.filter(flock => flock.healthStatus === 'Quarantined').length;
-
-    setStatistics({
-      totalHens,
-      healthyFlocks,
-      sickFlocks,
-      quarantinedFlocks
-    });
-  };
-
-  const columns = [
-    { title: 'Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
-    { title: 'Breed', dataIndex: 'breed', key: 'breed' },
-    { title: 'Number of Hens', dataIndex: 'numberOfHens', key: 'numberOfHens', sorter: (a, b) => a.numberOfHens - b.numberOfHens },
-    {
-      title: 'Health Status', dataIndex: 'healthStatus', key: 'healthStatus',
-      render: (status: string) => {
-        const color = { Healthy: 'green', Sick: 'red', Quarantined: 'orange' }[status];
-        return <span style={{ color }}>{status}</span>;
-      }
-    },
-    {
-      title: 'Actions', key: 'actions',
-      render: (_: any, record: FlockRecord) => (
-        <div className="action-buttons">
-          <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button danger icon={<DeleteOutlined />} onClick={() => handleDelete(record._id)} />
-        </div>
-      )
-    }
-  ];
-
-  const handleAdd = () => {
-    setEditingRecord(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  };
-
-  const handleEdit = (record: FlockRecord) => {
-    setEditingRecord(record);
-    form.setFieldsValue(record);
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await fetch(`${BASE_URL}/flock/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
-      notification.success({ message: 'Success', description: 'Flock deleted successfully' });
-      fetchData();
-    } catch (error) {
-      notification.error({ message: 'Error', description: 'Failed to delete flock' });
-    }
-  };
-
-  const handleSave = async (values: any) => {
-    const flockId = editingRecord?._id;
-    const flockData = {
-      name: values.name,
-      breed: values.breed,
-      numberOfHens: values.numberOfHens,
-      healthStatus: values.healthStatus
+    // Fetch flocks
+    const fetchFlocks = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/flock');
+            setData(response.data);
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to fetch flocks' });
+        } finally {
+            setLoading(false);
+        }
     };
-    try {
-      const url = flockId ? `${BASE_URL}/flock/${flockId}` : `${BASE_URL}/flock`;
-      const method = flockId ? 'PUT' : 'POST';
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(flockData)
-      });
 
-      if (!response.ok) throw new Error('Save failed');
+    useEffect(() => {
+        fetchFlocks();
+    }, []);
 
-      notification.success({ message: 'Success', description: `Flock ${flockId ? 'updated' : 'created'} successfully` });
-      setIsModalVisible(false);
-      form.resetFields();
-      fetchData();
-    } catch (error) {
-      notification.error({ message: 'Error', description: 'Failed to save flock' });
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/flock/export`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) throw new Error('Export failed');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'flock-data.csv';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      notification.error({ message: 'Error', description: 'Failed to export flock data' });
-    }
-  };
-
-  return (
-    <MainLayout>
-      <div className="flock-container">
-        <div className="flock-header">
-          <h1>Flock Management</h1>
-          <div className="action-buttons">
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>Add Flock</Button>
-            <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
-          </div>
-        </div>
-
-        <div className="statistics-cards">
-          <Card><Statistic title="Total Hens" value={statistics.totalHens} /></Card>
-          <Card><Statistic title="Healthy Flocks" value={statistics.healthyFlocks} /></Card>
-          <Card><Statistic title="Sick Flocks" value={statistics.sickFlocks} /></Card>
-          <Card><Statistic title="Quarantined Flocks" value={statistics.quarantinedFlocks} /></Card>
-        </div>
-
-        <Table columns={columns} dataSource={data} loading={loading} rowKey="_id" pagination={{ pageSize: 8 }} />
-
-        <Modal
-          title={editingRecord ? 'Edit Flock' : 'Add New Flock'}
-          open={isModalVisible}
-          onOk={async () => {
-            try {
-              const values = await form.validateFields();
-              handleSave(values); // ✅ Pass form values explicitly
-            } catch (_) {}
-          }}
-          onCancel={() => {
+    // Handlers
+    const handleAddOrUpdate = async (values: any) => {
+        try {
+            if (editingId) {
+                await api.put(`/flock/${editingId}`, values);
+                notification.success({ message: 'Success', description: 'Flock updated' });
+            } else {
+                await api.post('/flock', values);
+                notification.success({ message: 'Success', description: 'Flock added' });
+            }
             setIsModalVisible(false);
-            setEditingRecord(null);
+            setEditingId(null);
             form.resetFields();
-          }}
-        >
-          <Form form={form} layout="vertical">
-            <Form.Item name="name" label="Flock Name" rules={[{ required: true, message: 'Please input flock name!' }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="breed" label="Breed" rules={[{ required: true, message: 'Please input breed!' }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="numberOfHens" label="Number of Hens" rules={[{ required: true, message: 'Please input number of hens!' }]}>
-              <Input type="number" min={0} />
-            </Form.Item>
-            <Form.Item
-              name="healthStatus"
-              label="Health Status"
-              rules={[{ required: true, message: 'Please select health status!' }]}
-            >
-              <Select placeholder="Select health status">
-                <Select.Option value="Healthy">Healthy</Select.Option>
-                <Select.Option value="Sick">Sick</Select.Option>
-                <Select.Option value="Quarantined">Quarantined</Select.Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    </MainLayout>
-  );
+            fetchFlocks();
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Operation failed' });
+        }
+    };
+
+    const handleEdit = (record: any) => {
+        setEditingId(record._id);
+        form.setFieldsValue(record);
+        setIsModalVisible(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            const response = await fetch(`${BASE_URL}/flock/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+
+            if (response.ok) {
+                notification.success({ message: 'Deleted', description: 'Flock removed' });
+                fetchFlocks();
+            }
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to delete' });
+        }
+    };
+
+    const columns = [
+        {
+            title: 'Flock ID',
+            dataIndex: 'flockId',
+            key: 'flockId',
+            sorter: (a: any, b: any) => a.flockId.localeCompare(b.flockId)
+        },
+        {
+            title: 'Breed',
+            dataIndex: 'breed',
+            key: 'breed',
+            sorter: (a: any, b: any) => a.breed.localeCompare(b.breed)
+        },
+        { title: 'Quantity', dataIndex: 'initialQuantity', key: 'initialQuantity' },
+        {
+            title: 'Status',
+            dataIndex: 'status',
+            key: 'status',
+            render: (status: string) => (
+                <Tag color={status === 'Active' ? 'green' : 'red'}>{status.toUpperCase()}</Tag>
+            )
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (_: any, record: any) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    <Popconfirm title="Remove this flock?" onConfirm={() => handleDelete(record._id)}>
+                        <Button icon={<DeleteOutlined />} danger />
+                    </Popconfirm>
+                </Space>
+            ),
+        },
+    ];
+
+    return (
+        <div className="flock-container">
+            <Card title="🐣 Flock Management" extra={
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+                    New Flock
+                </Button>
+            }>
+                <Table
+                    columns={columns}
+                    dataSource={data}
+                    rowKey="_id"
+                    loading={loading}
+                    pagination={{ pageSize: 8 }}
+                />
+
+                <Modal
+                    title={editingId ? 'Edit Flock' : 'Add New Flock'}
+                    open={isModalVisible}
+                    onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
+                    footer={null}
+                >
+                    <Form form={form} layout="vertical" onFinish={handleAddOrUpdate}>
+                        <Form.Item name="flockId" label="Flock ID" rules={[{ required: true }]}>
+                            <Input placeholder="e.g. FLK-001" />
+                        </Form.Item>
+                        <Form.Item name="breed" label="Breed" rules={[{ required: true }]}>
+                            <Input placeholder="e.g. White Leghorn" />
+                        </Form.Item>
+                        <Form.Item name="initialQuantity" label="Quantity" rules={[{ required: true }]}>
+                            <InputNumber style={{ width: '100%' }} min={1} />
+                        </Form.Item>
+                        <Form.Item name="acquisitionDate" label="Acquisition Date" rules={[{ required: true }]}>
+                            <Input type="date" />
+                        </Form.Item>
+                        <Form.Item name="status" label="Status" initialValue="Active">
+                            <Select>
+                                <Option value="Active">Active</Option>
+                                <Option value="Sold">Sold</Option>
+                                <Option value="Dead">Inactive</Option>
+                            </Select>
+                        </Form.Item>
+                        <Button type="primary" htmlType="submit" block>Save Flock</Button>
+                    </Form>
+                </Modal>
+            </Card>
+        </div>
+    );
 };
 
 export default Flock;

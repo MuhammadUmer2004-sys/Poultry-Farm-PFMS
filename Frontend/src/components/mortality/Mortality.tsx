@@ -1,214 +1,137 @@
 import { useState, useEffect } from 'react';
-import MainLayout from '../mainfile/main';
-import { Button, Table, Modal, Form, Input, InputNumber, notification, Select, DatePicker } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import moment from 'moment';
+import { Table, Button, Modal, Form, Input, InputNumber, notification, Popconfirm, Card, Typography, Space } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import './mortality.css';
 import { BASE_URL } from '../../services/api';
 
-interface MortalityRecord {
-  _id: string;
-  flock: string;
-  date: string;
-  numberOfDeaths: number;
-  cause: string;
-  createdAt: string;
-}
-
-interface FlockOption {
-  _id: string;
-  name: string;
-}
+const { Title } = Typography;
 
 const Mortality = () => {
-  const [data, setData] = useState<MortalityRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedFlock, setSelectedFlock] = useState<string | null>(null);
-  const [flocks, setFlocks] = useState<FlockOption[]>([]);
-  const [form] = Form.useForm();
-  const [submitting, setSubmitting] = useState(false);
+    const [data, setData] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [form] = Form.useForm();
 
-  // ✅ Fetch all flocks
-  const fetchFlocks = async () => {
-    try {
-      const response = await fetch(`${BASE_URL}/flock`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const result = await response.json();
-      setFlocks(result?.data || result); // handles both array or { data: array }
-      if ((result?.data || result).length > 0) {
-        setSelectedFlock((result?.data || result)[0]._id);
-      }
-    } catch {
-      notification.error({ message: 'Error', description: 'Failed to fetch flocks' });
-    }
-  };
+    // Fetch mortality records
+    const fetchMortality = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch(`${BASE_URL}/mortality`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            const result = await response.json();
+            setData(result);
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to fetch mortality data' });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  // ✅ Fetch mortality for a selected flock
-  const fetchMortalityData = async () => {
-    if (!selectedFlock) return;
-    setLoading(true);
-    try {
-      const response = await fetch(`${BASE_URL}/mortality/${selectedFlock}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const result = await response.json();
-      setData(result.data || []);
-    } catch {
-      notification.error({ message: 'Error', description: 'Failed to fetch mortality data' });
-    } finally {
-      setLoading(false);
-    }
-  };
+    useEffect(() => {
+        fetchMortality();
+    }, []);
 
-  useEffect(() => {
-    fetchFlocks();
-  }, []);
+    // Add mortality record
+    const handleAdd = async (values: any) => {
+        try {
+            const response = await fetch(`${BASE_URL}/mortality`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+                body: JSON.stringify(values),
+            });
 
-  useEffect(() => {
-    if (selectedFlock) fetchMortalityData();
-  }, [selectedFlock]);
+            if (response.ok) {
+                notification.success({ message: 'Success', description: 'Mortality record added' });
+                setIsModalVisible(false);
+                form.resetFields();
+                fetchMortality();
+            }
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to add record' });
+        }
+    };
 
-  const handleAdd = () => {
-    form.resetFields();
-    form.setFieldsValue({ date: moment() });
-    setIsModalVisible(true);
-  };
+    // Delete record
+    const handleDelete = async (id: string) => {
+        try {
+            const response = await fetch(`${BASE_URL}/mortality/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
 
-  const handleSave = async (values: any) => {
-    if (!selectedFlock) return;
-    setSubmitting(true);
-    try {
-      if (values.date.isAfter(moment())) throw new Error('Date cannot be in the future');
+            if (response.ok) {
+                notification.success({ message: 'Deleted', description: 'Record removed successfully' });
+                fetchMortality();
+            }
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to delete record' });
+        }
+    };
 
-      const payload = {
-        flockId: selectedFlock,
-        date: values.date.format('YYYY-MM-DD'),
-        numberOfDeaths: values.numberOfDeaths,
-        cause: values.cause
-      };
-
-      await fetch(`${BASE_URL}/mortality`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+    const columns = [
+        { title: 'Date', dataIndex: 'date', key: 'date', render: (text: string) => new Date(text).toLocaleDateString() },
+        { title: 'Flock ID', dataIndex: 'flockId', key: 'flockId' },
+        { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
+        { title: 'Cause', dataIndex: 'cause', key: 'cause' },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (_: any, record: any) => (
+                <Popconfirm title="Are you sure to delete?" onConfirm={() => handleDelete(record._id)}>
+                    <Button type="link" danger>Delete</Button>
+                </Popconfirm>
+            ),
         },
-        body: JSON.stringify(payload)
-      });
+    ];
 
-      notification.success({ message: 'Success', description: 'Mortality record saved' });
-      setIsModalVisible(false);
-      fetchMortalityData();
-    } catch (err: any) {
-      notification.error({ message: 'Error', description: err.message || 'Failed to save record' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    return (
+        <div className="mortality-container">
+            <Card title={<Title level={4}>☠️ Mortality Records</Title>} extra={
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>
+                    Record Death
+                </Button>
+            }>
+                <Table
+                    columns={columns}
+                    dataSource={data}
+                    rowKey="_id"
+                    loading={loading}
+                    pagination={{ pageSize: 8 }}
+                />
 
-  const columns = [
-    {
-      title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      render: (date: string) => moment(date).format('YYYY-MM-DD'),
-      sorter: (a: MortalityRecord, b: MortalityRecord) =>
-        moment(a.date).unix() - moment(b.date).unix()
-    },
-    {
-      title: 'Number of Deaths',
-      dataIndex: 'numberOfDeaths',
-      key: 'numberOfDeaths',
-      sorter: (a: MortalityRecord, b: MortalityRecord) => a.numberOfDeaths - b.numberOfDeaths
-    },
-    {
-      title: 'Cause',
-      dataIndex: 'cause',
-      key: 'cause'
-    }
-  ];
-
-  return (
-    <MainLayout>
-      <div className="mortality-container">
-        <div className="mortality-header">
-          <h1>Mortality Tracking</h1>
-          <div className="mortality-controls">
-            <Select
-              className="flock-selector"
-              value={selectedFlock}
-              onChange={setSelectedFlock}
-              placeholder="Select Flock"
-            >
-              {flocks.map(flock => (
-                <Select.Option key={flock._id} value={flock._id}>
-                  {flock.name}
-                </Select.Option>
-              ))}
-            </Select>
-
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-              disabled={!selectedFlock}
-            >
-              Add Record
-            </Button>
-          </div>
+                <Modal
+                    title="Add Mortality Record"
+                    open={isModalVisible}
+                    onCancel={() => setIsModalVisible(false)}
+                    footer={null}
+                >
+                    <Form form={form} layout="vertical" onFinish={handleAdd}>
+                        <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+                            <Input type="date" />
+                        </Form.Item>
+                        <Form.Item name="flockId" label="Flock ID" rules={[{ required: true }]}>
+                            <Input placeholder="Enter Flock ID" />
+                        </Form.Item>
+                        <Form.Item name="quantity" label="Number of Birds" rules={[{ required: true }]}>
+                            <InputNumber style={{ width: '100%' }} min={1} />
+                        </Form.Item>
+                        <Form.Item name="cause" label="Cause of Death" rules={[{ required: true }]}>
+                            <Input placeholder="e.g. Heat stress, Disease" />
+                        </Form.Item>
+                        <Button type="primary" htmlType="submit" block>Submit Record</Button>
+                    </Form>
+                </Modal>
+            </Card>
         </div>
-
-        <Table
-          columns={columns}
-          dataSource={data}
-          loading={loading}
-          rowKey="_id"
-          pagination={{ pageSize: 10 }}
-        />
-
-        <Modal
-          title="Add Mortality Record"
-          open={isModalVisible}
-          onCancel={() => {
-            setIsModalVisible(false);
-            form.resetFields();
-          }}
-          onOk={() => form.submit()}
-          confirmLoading={submitting}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            onFinish={handleSave}
-          >
-            <Form.Item
-              name="date"
-              label="Date"
-              rules={[{ required: true, message: 'Please select a date' }]}
-            >
-              <DatePicker
-                style={{ width: '100%' }}
-                disabledDate={current => current && current > moment().endOf('day')}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="numberOfDeaths"
-              label="Number of Deaths"
-              rules={[{ required: true, message: 'Please input number of deaths!' }]}
-            >
-              <InputNumber min={1} style={{ width: '100%' }} />
-            </Form.Item>
-
-            <Form.Item name="cause" label="Cause">
-              <Input.TextArea rows={3} />
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    </MainLayout>
-  );
+    );
 };
 
 export default Mortality;

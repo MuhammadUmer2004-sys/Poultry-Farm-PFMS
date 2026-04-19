@@ -17,7 +17,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [displayName, setDisplayName] = useState('Guest');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [shownMessages, setShownMessages] = useState<string[]>([]);
   const [api, contextHolder] = notification.useNotification();
 
@@ -41,11 +41,11 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         });
         const data = await res.json();
 
-        const unique = Array.from(new Map(data.map(n => [n._id, n])).values());
+        const unique = Array.from(new Map(data.map((n: any) => [n._id, n])).values());
         setNotifications(unique);
 
         // ✅ Auto popup alerts for new unread (no duplicates)
-        unique.slice(0, 3).forEach(notif => {
+        unique.slice(0, 3).forEach((notif: any) => {
           if (!shownMessages.includes(notif._id)) {
             api.open({
               message: notif.title,
@@ -86,7 +86,7 @@ const handleMarkAsRead = async (id: string) => {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    setNotifications(prev => prev.filter(n => n._id !== id));
+    setNotifications(prev => prev.filter((n: any) => n._id !== id));
   } catch (err) {
     console.error('Failed to mark notification as read');
   }
@@ -102,7 +102,7 @@ const openNotification = () => {
     return;
   }
 
-  notifications.slice(0, 3).forEach(notif => {
+  notifications.slice(0, 3).forEach((notif: any) => {
     api.open({
       message: notif.title,
       description: (

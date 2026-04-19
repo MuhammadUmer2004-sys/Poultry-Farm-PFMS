@@ -1,103 +1,74 @@
 import { useState, useEffect } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import MainLayout from '../mainfile/main';
-import { Button, Select, Table, DatePicker, Modal, Form, Input, InputNumber, notification, Card, Statistic } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, notification, Popconfirm, Card, Row, Col, Space } from 'antd';
 import { EditOutlined, DeleteOutlined, DownloadOutlined, PlusOutlined } from '@ant-design/icons';
 import './egg-production.css';
 import moment from 'moment';
 import { api, BASE_URL } from '../../services/api';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-
-interface EggProductionRecord {
-    _id: string;
-    date: string;
-    totalEggs: number;
-    notes: string;
-}
-
 const EggProduction = () => {
-    const [data, setData] = useState<EggProductionRecord[]>([]);
+    const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const [editingRecord, setEditingRecord] = useState<EggProductionRecord | null>(null);
-    const [dateRange, setDateRange] = useState<[moment.Moment, moment.Moment] | null>(null);
-    const [statistics, setStatistics] = useState({
-        totalEggs: 0,
-        averageDaily: 0,
-        highestProduction: 0,
-        lowestProduction: 0
-    });
     const [form] = Form.useForm();
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Fetch data
-    const fetchData = async () => {
+    const fetchEggProduction = async () => {
         setLoading(true);
-        setError(null);
         try {
-            const result = await api.fetchWithAuth('/egg-production');
-            setData(result.data);
-            calculateStatistics(result.data);
+            const response = await api.get('/egg-production');
+            setData(response.data);
         } catch (err) {
-            setError('Failed to fetch egg production data');
-            notification.error({
-                message: 'Error',
-                description: 'Failed to fetch egg production data'
-            });
+            notification.error({ message: 'Error', description: 'Failed to fetch egg production data' });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        fetchEggProduction();
     }, []);
 
-    // Calculate statistics
-    const calculateStatistics = (productionData: EggProductionRecord[]) => {
-        const total = productionData.reduce((sum, record) => sum + record.totalEggs, 0);
-        const average = total / productionData.length || 0;
-        const highest = Math.max(...productionData.map(record => record.totalEggs));
-        const lowest = Math.min(...productionData.map(record => record.totalEggs));
-
-        setStatistics({
-            totalEggs: total,
-            averageDaily: Math.round(average),
-            highestProduction: highest,
-            lowestProduction: lowest
-        });
-    };
-
-    // Modal handlers
-    const handleAdd = () => {
-        setEditingRecord(null);
-        form.resetFields();
-        setIsModalVisible(true);
-    };
-
-    const handleEdit = (record: EggProductionRecord) => {
-        setEditingRecord(record);
-        form.setFieldsValue({
-            ...record,
-            date: moment(record.date)
-        });
-        setIsModalVisible(true);
-    };
-
-    const handleSave = async (values: any) => {
-        setLoading(true);
-        const eggProductionData = { date: values.date.format('YYYY-MM-DD'), totalEggs: values.totalEggs, notes: values.notes};
+    // Add or Update handler
+    const handleAddOrUpdate = async (values: any) => {
         try {
-            // Check if date is defined
-            if (!values.date) {
-                notification.error({
-                    message: 'Error',
-                    description: 'Please select a date.',
-                });
-                return; // Exit the function if date is not selected
+            const payload = {
+                ...values,
+                date: values.date.format('YYYY-MM-DD'),
+            };
+
+            if (editingId) {
+                await api.put(`/egg-production/${editingId}`, payload);
+                notification.success({ message: 'Success', description: 'Egg production record updated' });
+            } else {
+                await api.post('/egg-production', payload);
+                notification.success({ message: 'Success', description: 'Egg production record added' });
             }
+
+            setIsModalVisible(false);
+            form.resetFields();
+            setEditingId(null);
+            fetchEggProduction();
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Operation failed' });
+        }
+    };
+
+    const handleFormSubmit = async (values: any) => {
+        try {
+            // ❌ REMOVE the redundant fetch check here and use `api` if preferred, 
+            // but for now let's just use the BASE_URL logic consistently as requested.
+            
+            const dateStr = values.date ? values.date.format('YYYY-MM-DD') : null;
+            if (!dateStr) {
+                notification.error({ message: 'Date Missing', description: 'Please select a date' });
+                return;
+            }
+
+            const payload = {
+                ...values,
+                date: dateStr
+            };
 
             const response = await fetch(`${BASE_URL}/egg-production`, {
                 method: 'POST',
@@ -105,37 +76,28 @@ const EggProduction = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 },
-                body: JSON.stringify(eggProductionData),
+                body: JSON.stringify(payload),
             });
 
-            const data = await response.json();
-
-            // Log the response from the backend
-            console.log('Response from backend:', data);
-
-            if (data.success) {
-                notification.success({
-                    message: 'Success',
-                    description: 'Production record added and inventory updated successfully',
-                });
+            if (response.ok) {
+                notification.success({ message: 'Success', description: 'Record added successfully' });
                 setIsModalVisible(false);
                 form.resetFields();
-                fetchData(); // Refresh production data
-            } else {
-                notification.error({
-                    message: 'Error',
-                    description: data.message || 'Failed to save record',
-                });
+                fetchEggProduction();
             }
-        } catch (error) {
-            console.error('Error during save operation:', error);
-            notification.error({
-                message: 'Error',
-                description: 'Failed to save record',
-            });
-        } finally {
-            setLoading(false);
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to save record' });
         }
+    };
+
+    // Edit handler
+    const handleEdit = (record: any) => {
+        setEditingId(record._id);
+        form.setFieldsValue({
+            ...record,
+            date: moment(record.date),
+        });
+        setIsModalVisible(true);
     };
 
     // Delete handler
@@ -149,17 +111,11 @@ const EggProduction = () => {
             });
 
             if (response.ok) {
-                notification.success({
-                    message: 'Success',
-                    description: 'Record deleted successfully'
-                });
-                fetchData();
+                notification.success({ message: 'Deleted', description: 'Record removed' });
+                fetchEggProduction();
             }
-        } catch (error) {
-            notification.error({
-                message: 'Error',
-                description: 'Failed to delete record'
-            });
+        } catch (err) {
+            notification.error({ message: 'Error', description: 'Failed to delete record' });
         }
     };
 
@@ -175,168 +131,88 @@ const EggProduction = () => {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'egg-production.csv';
+            a.download = `egg_production_${moment().format('YYYY-MM-DD')}.csv`;
             document.body.appendChild(a);
             a.click();
             a.remove();
-        } catch (error) {
-            notification.error({
-                message: 'Error',
-                description: 'Failed to export data'
-            });
+        } catch (err) {
+            notification.error({ message: 'Export Failed', description: 'Could not export data' });
         }
     };
 
-    // Chart data preparation
-    const chartData = {
-        labels: data.map(record => moment(record.date).format('MMM DD')),
-        datasets: [{
-            label: 'Daily Egg Production',
-            data: data.map(record => record.totalEggs),
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-        }]
-    };
-
-    // Table columns
     const columns = [
-        {
-            title: 'Date',
-            dataIndex: 'date',
-            key: 'date',
-            render: (date: string) => moment(date).format('YYYY-MM-DD'),
-            sorter: (a: EggProductionRecord, b: EggProductionRecord) => 
-                moment(a.date).unix() - moment(b.date).unix()
-        },
-        {
-            title: 'Total Eggs',
-            dataIndex: 'totalEggs',
-            key: 'totalEggs',
-            sorter: (a: EggProductionRecord, b: EggProductionRecord) => 
-                a.totalEggs - b.totalEggs
-        },
-        {
-            title: 'Notes',
-            dataIndex: 'notes',
-            key: 'notes',
-        },
+        { title: 'Date', dataIndex: 'date', key: 'date', render: (text: string) => moment(text).format('DD/MM/YYYY') },
+        { title: 'Flock Name', dataIndex: 'flockName', key: 'flockName' },
+        { title: 'Total Eggs', dataIndex: 'totalEggs', key: 'totalEggs' },
+        { title: 'Crack Eggs', dataIndex: 'crackEggs', key: 'crackEggs' },
+        { title: 'Good Eggs', dataIndex: 'goodEggs', key: 'goodEggs' },
         {
             title: 'Actions',
             key: 'actions',
-            render: (_: any, record: EggProductionRecord) => (
-                <>
-                    <Button 
-                        icon={<EditOutlined />} 
-                        type="link" 
-                        onClick={() => handleEdit(record)} 
-                    />
-                    <Button 
-                        icon={<DeleteOutlined />} 
-                        type="link" 
-                        danger 
-                        onClick={() => handleDelete(record._id)}
-                    />
-                </>
+            render: (_: any, record: any) => (
+                <Space>
+                    <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+                    <Popconfirm title="Sure to delete?" onConfirm={() => handleDelete(record._id)}>
+                        <Button icon={<DeleteOutlined />} danger />
+                    </Popconfirm>
+                </Space>
             ),
-        }
+        },
     ];
 
     return (
-        <MainLayout>
-            <div className="production-title-primary">
-                <h1 className="production-title">Egg Production</h1>
-                <div className="action-buttons">
-                    <Button 
-                        type="primary" 
-                        icon={<PlusOutlined />} 
-                        onClick={handleAdd}
-                    >
-                        Add Record
-                    </Button>
-                    <Button 
-                        icon={<DownloadOutlined />} 
-                        onClick={handleExport}
-                    >
-                        Export
-                    </Button>
-                </div>
-            </div>
+        <div className="egg-production-container">
+            <Card title="🥚 Egg Production Tracking" extra={
+                <Space>
+                    <Button icon={<DownloadOutlined />} onClick={handleExport}>Export</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>Add Record</Button>
+                </Space>
+            }>
+                <Row gutter={16} className="stats-row">
+                    <Col span={8}>
+                        <Card small-card="true">
+                            <h3>Total Produced (Today)</h3>
+                            <p className="stat-val">{data.length > 0 ? data[0].totalEggs : 0}</p>
+                        </Card>
+                    </Col>
+                </Row>
 
-            <div className="statistics-cards">
-                <Card>
-                    <Statistic title="Total Eggs" value={statistics.totalEggs} />
-                </Card>
-                <Card>
-                    <Statistic title="Daily Average" value={statistics.averageDaily} />
-                </Card>
-                <Card>
-                    <Statistic title="Highest Production" value={statistics.highestProduction} />
-                </Card>
-                <Card>
-                    <Statistic title="Lowest Production" value={statistics.lowestProduction} />
-                </Card>
-            </div>
-
-            <div className="filters">
-                <DatePicker.RangePicker 
-                    className="filters-select"
-                    onChange={(dates) => setDateRange(dates as [moment.Moment, moment.Moment])}
+                <Table
+                    columns={columns}
+                    dataSource={data}
+                    rowKey="_id"
+                    loading={loading}
+                    pagination={{ pageSize: 7 }}
                 />
-            </div>
 
-            <div className="chart-container">
-                <Line data={chartData} options={{
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Daily Egg Production Trend' }
-                    }
-                }} />
-            </div>
-
-            <Table 
-                columns={columns} 
-                dataSource={data}
-                loading={loading}
-                rowKey="_id"
-                pagination={{
-                    pageSize: 8,
-                    showSizeChanger: false,
-                    showQuickJumper: true,
-                }}
-            />
-
-            <Modal
-                title={editingRecord ? 'Edit Record' : 'Add New Record'}
-                open={isModalVisible}
-                onOk={() => form.validateFields().then(handleSave).catch(() => {})}
-                onCancel={() => setIsModalVisible(false)}
-            >
-                <Form form={form} layout="vertical">
-                    <Form.Item
-                        name="date"
-                        label="Date"
-                        rules={[{ required: true, message: 'Please select date' }]}
-                    >
-                        <DatePicker onChange={(date) => form.setFieldsValue({ date })} />
-                    </Form.Item>
-                    <Form.Item
-                        name="totalEggs"
-                        label="Total Eggs"
-                        rules={[{ required: true, message: 'Please enter total eggs' }]}
-                    >
-                        <InputNumber min={0} />
-                    </Form.Item>
-                    <Form.Item
-                        name="notes"
-                        label="Notes"
-                    >
-                        <Input.TextArea />
-                    </Form.Item>
-                </Form>
-            </Modal>
-        </MainLayout>
+                <Modal
+                    title={editingId ? 'Edit Record' : 'Add Production Record'}
+                    open={isModalVisible}
+                    onCancel={() => { setIsModalVisible(false); setEditingId(null); form.resetFields(); }}
+                    footer={null}
+                >
+                    <Form form={form} layout="vertical" onFinish={editingId ? handleAddOrUpdate : handleFormSubmit}>
+                        <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+                            <DatePicker style={{ width: '100%' }} />
+                        </Form.Item>
+                        <Form.Item name="flockName" label="Flock Name" rules={[{ required: true }]}>
+                            <Input placeholder="Enter Flock ID or Name" />
+                        </Form.Item>
+                        <Form.Item name="totalEggs" label="Total Eggs" rules={[{ required: true }]}>
+                            <InputNumber style={{ width: '100%' }} min={0} />
+                        </Form.Item>
+                        <Form.Item name="crackEggs" label="Cracked Eggs" rules={[{ required: true }]}>
+                            <InputNumber style={{ width: '100%' }} min={0} />
+                        </Form.Item>
+                        <Form.Item name="goodEggs" label="Good Eggs" rules={[{ required: true }]}>
+                            <InputNumber style={{ width: '100%' }} min={0} />
+                        </Form.Item>
+                        <Button type="primary" htmlType="submit" block>Save Record</Button>
+                    </Form>
+                </Modal>
+            </Card>
+        </div>
     );
 };
 
-export default EggProduction; 
+export default EggProduction;
