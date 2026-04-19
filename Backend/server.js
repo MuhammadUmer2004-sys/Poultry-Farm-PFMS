@@ -59,8 +59,13 @@ app.use(errorHandler);
 // ✅ Load Schedulers (CRON jobs)
 require('./schedulers/vaccinationReminder'); // 🔔 Vaccination + Feed Alerts
 
-// ✅ Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+// ✅ Start Server (Only when not on Vercel)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
+
+// ✅ Export app for Vercel
+module.exports = app;

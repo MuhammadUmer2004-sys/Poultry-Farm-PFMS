@@ -15,6 +15,7 @@ import {
 import { PlusOutlined } from '@ant-design/icons';
 import './egg-inventory.css';
 import moment from 'moment';
+import { BASE_URL } from '../../services/api';
 
 interface EggInventoryRecord {
     _id: string;
@@ -43,7 +44,7 @@ const EggInventory = () => {
     const fetchInventory = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/egg-inventory', {
+            const response = await fetch(`${BASE_URL}/egg-inventory`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 },
@@ -68,7 +69,7 @@ const EggInventory = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:5000/api/egg-inventory/sales', {
+            const response = await fetch(`${BASE_URL}/egg-inventory/sales`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './main.css';
 import logo from '../../assets/logo.png';
 import image1 from '../../assets/avatar.png';
+import { BASE_URL } from '../../services/api';
 
 const { Header, Sider, Content } = Layout;
 
@@ -33,7 +34,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/notifications', {
+        const res = await fetch(`${BASE_URL}/notifications`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -80,7 +81,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 const handleMarkAsRead = async (id: string) => {
   try {
     const token = localStorage.getItem('token');
-    await fetch(`http://localhost:5000/api/notifications/${id}/read`, {
+    await fetch(`${BASE_URL}/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` }
     });

@@ -4,6 +4,7 @@ import { Card, Statistic, notification } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import './adminDashboard.css';
+import { BASE_URL } from '../../services/api';
 
 interface AdminDashboardData {
   totalUsers: number;
@@ -18,7 +19,7 @@ const AdminDashboard = () => {
 
   const fetchAdminDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/admin-dashboard/dashboard', {
+      const response = await fetch(`${BASE_URL}/admin-dashboard/dashboard`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

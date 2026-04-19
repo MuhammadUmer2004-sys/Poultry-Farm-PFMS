@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import img from "../../assets/logo.png";
 import img2 from "../../assets/Illustration2.png";
 import "./signup.css";
+import { BASE_URL } from '../../services/api';
 
 const Signup = () => {
   const [username, setUsername] = useState('');
@@ -27,7 +28,7 @@ const Signup = () => {
     const signupData = { username, email, password };
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

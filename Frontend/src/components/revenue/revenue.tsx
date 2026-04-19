@@ -4,6 +4,7 @@ import { Button, Table, Modal, Form, Input, InputNumber, notification, Card, Sta
 import { EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import './revenue.css';
 import moment from 'moment';
+import { BASE_URL } from '../../services/api';
 
 interface RevenueRecord {
   _id: string;
@@ -34,7 +35,7 @@ const Revenue = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/revenues', {
+      const response = await fetch(`${BASE_URL}/revenues`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +124,7 @@ const Revenue = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:5000/api/revenues/${id}`, {
+      await fetch(`${BASE_URL}/revenues/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +140,7 @@ const Revenue = () => {
 
   const handleExport = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/revenues/export', {
+      const response = await fetch(`${BASE_URL}/revenues/export`, {
         method: 'GET',
         headers: {
           'Content-Type': 'text/csv',
@@ -167,8 +168,8 @@ const Revenue = () => {
       };
 
       const url = editingRecord
-        ? `http://localhost:5000/api/revenues/${editingRecord._id}`
-        : 'http://localhost:5000/api/revenues/add';
+        ? `${BASE_URL}/revenues/${editingRecord._id}`
+        : `${BASE_URL}/revenues/add`;
 
       const method = editingRecord ? 'PUT' : 'POST';
 

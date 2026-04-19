@@ -6,7 +6,7 @@ import { Button, Select, Table, DatePicker, Modal, Form, Input, InputNumber, not
 import { EditOutlined, DeleteOutlined, DownloadOutlined, PlusOutlined } from '@ant-design/icons';
 import './egg-production.css';
 import moment from 'moment';
-import { api } from '../../services/api';
+import { api, BASE_URL } from '../../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -99,7 +99,7 @@ const EggProduction = () => {
                 return; // Exit the function if date is not selected
             }
 
-            const response = await fetch('http://localhost:5000/api/egg-production', {
+            const response = await fetch(`${BASE_URL}/egg-production`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ const EggProduction = () => {
     // Delete handler
     const handleDelete = async (id: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/egg-production/${id}`, {
+            const response = await fetch(`${BASE_URL}/egg-production/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -166,7 +166,7 @@ const EggProduction = () => {
     // Export handler
     const handleExport = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/egg-production/export', {
+            const response = await fetch(`${BASE_URL}/egg-production/export`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 },

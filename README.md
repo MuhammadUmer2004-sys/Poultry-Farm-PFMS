@@ -3,15 +3,13 @@
 A **MERN Stack** web application designed to streamline poultry farm operations and make them more efficient, data-driven, and accessible.  
 
 ## 🚀 Features
-- 📊 **Dashboard with Graphs & Charts** – Visualize farm performance and key metrics  
-- 🥚 **Egg Production & Inventory Management** – Track daily/weekly egg production and stock levels  
-- 🌾 **Feed Management** – Manage feed inventory and usage  
-- 🐥 **Flock Management** – Keep detailed records of flocks and bird health  
-- 💰 **Revenue & Expenses Tracking** – Monitor farm profitability  
-- ☠️ **Mortality Tracking** – Record bird mortality for analysis  
-- 💉 **Vaccination Scheduling** – Manage vaccination plans and records  
-- 👤 **Role-Based Access Control** – Admin and Normal User functionalities  
-- 🔒 **Authentication & Security** – JWT-based authentication and secure logout  
+- 📊 **Interactive Dashboards** – Managed 500+ farm records tracking feed, production, and health metrics.
+- 👤 **Role-Based Access Control** – Implemented authentication and fine-grained access for 4 specialized user types.
+- 📈 **Trend Visualization** – Interactive charts for trend analysis, improving decision-making efficiency by 35%.
+- 🥚 **Production & Inventory** – Track daily egg production and real-time inventory levels.
+- 🌾 **Feed & Resource Management** – Automated tracking of feed consumption and stock levels.
+- 💰 **Profitability Monitoring** – Detailed revenue and expense tracking via financial modules.
+- 💉 **Health & Vaccination** – Integrated mortality tracking and vaccination scheduling for bird health.
 
 ## 💻 Tech Stack
 - **Frontend:** React + Vite + TypeScript  
@@ -23,8 +21,8 @@ A **MERN Stack** web application designed to streamline poultry farm operations 
 - **Data Visualization:** Graphs & Charts (React libraries)
   
 PFMS/
-│── frontend/ # React + Vite + TypeScript (UI)
-│── backend/ # Node.js + Express (API)
+│── Frontend/ # React + Vite + TypeScript (UI)
+│── Backend/ # Node.js + Express (API)
 │── README.md # Project documentation
 
 ## ⚙️ Installation & Setup

@@ -4,6 +4,7 @@ import { Button, Table, Modal, Form, Input, notification, Card, Statistic, Input
 import { EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, ToolOutlined } from '@ant-design/icons';
 import './feed.css';
 import moment from 'moment';
+import { BASE_URL } from '../../services/api';
 
 interface FeedRecord {
   _id: string;
@@ -40,7 +41,7 @@ const Feed = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetch('http://localhost:5000/api/feeds', {
+      const result = await fetch(`${BASE_URL}/feeds`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -96,7 +97,7 @@ const Feed = () => {
       orderDate: new Date().toISOString()
     };
     try {
-      const response = await fetch('http://localhost:5000/api/feeds', {
+      const response = await fetch(`${BASE_URL}/feeds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ const Feed = () => {
 
   const handleUsageSubmit = async (values: any) => {
     try {
-      const response = await fetch('http://localhost:5000/api/feeds/usage', {
+      const response = await fetch(`${BASE_URL}/feeds/usage`, {
         method: 'POST', // ✅ corrected method
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +145,7 @@ const Feed = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/feeds/${id}`, {
+      const response = await fetch(`${BASE_URL}/feeds/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -162,7 +163,7 @@ const Feed = () => {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/feeds/export`, {
+      const response = await fetch(`${BASE_URL}/feeds/export`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

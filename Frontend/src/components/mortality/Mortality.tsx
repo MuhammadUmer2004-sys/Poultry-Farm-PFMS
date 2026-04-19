@@ -3,6 +3,7 @@ import MainLayout from '../mainfile/main';
 import { Button, Table, Modal, Form, Input, InputNumber, notification, Select, DatePicker } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import moment from 'moment';
+import { BASE_URL } from '../../services/api';
 
 interface MortalityRecord {
   _id: string;
@@ -30,7 +31,7 @@ const Mortality = () => {
   // ✅ Fetch all flocks
   const fetchFlocks = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/flock', {
+      const response = await fetch(`${BASE_URL}/flock`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const result = await response.json();
@@ -48,7 +49,7 @@ const Mortality = () => {
     if (!selectedFlock) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/mortality/${selectedFlock}`, {
+      const response = await fetch(`${BASE_URL}/mortality/${selectedFlock}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const result = await response.json();
@@ -87,7 +88,7 @@ const Mortality = () => {
         cause: values.cause
       };
 
-      await fetch('http://localhost:5000/api/mortality', {
+      await fetch(`${BASE_URL}/mortality`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

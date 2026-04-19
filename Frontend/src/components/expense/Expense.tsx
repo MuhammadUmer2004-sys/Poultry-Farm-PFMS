@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import MainLayout from '../mainfile/main';
 import { Button, Table, Modal, Form, Input, InputNumber, notification, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { api } from '../../services/api';
+import { api, BASE_URL } from '../../services/api';
 import moment from 'moment';
 import './expense.css';
 
@@ -24,7 +24,7 @@ const Expense = () => {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/expenses', {
+      const response = await fetch(`${BASE_URL}/expenses`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const Expense = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:5000/api/expenses/${id}`, {
+      await fetch(`${BASE_URL}/expenses/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -144,7 +144,7 @@ const Expense = () => {
         description: values.description?.trim()
       };
 
-      await fetch('http://localhost:5000/api/expenses/add', {
+      await fetch(`${BASE_URL}/expenses/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -9,6 +9,7 @@ import {
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import './vaccination.css';
+import { BASE_URL } from '../../services/api';
 
 interface VaccinationRecord {
   _id: string;
@@ -35,7 +36,7 @@ const Vaccination = () => {
 
   const fetchFlocks = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/flock', {
+      const response = await fetch(`${BASE_URL}/flock`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         }
@@ -55,7 +56,7 @@ const Vaccination = () => {
     if (!selectedFlock) return;
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/vaccinations/${selectedFlock}`, {
+      const response = await fetch(`${BASE_URL}/vaccinations/${selectedFlock}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -126,7 +127,7 @@ const Vaccination = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:5000/api/vaccinations/${id}`, {
+      await fetch(`${BASE_URL}/vaccinations/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -150,7 +151,7 @@ const Vaccination = () => {
         notes: values.notes?.trim()
       };
 
-      await fetch('http://localhost:5000/api/vaccinations', {
+      await fetch(`${BASE_URL}/vaccinations`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,

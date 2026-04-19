@@ -4,6 +4,7 @@ import { Button, Table, Modal, Form, Input, Select, notification, Card, Statisti
 import { EditOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined } from '@ant-design/icons';
 import './flock.css';
 import moment from 'moment';
+import { BASE_URL } from '../../services/api';
 
 interface FlockRecord {
   _id: string;
@@ -32,7 +33,7 @@ const Flock = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/flock', {
+      const response = await fetch(`${BASE_URL}/flock`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -107,7 +108,7 @@ const Flock = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`http://localhost:5000/api/flock/${id}`, {
+      await fetch(`${BASE_URL}/flock/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
       });
@@ -127,7 +128,7 @@ const Flock = () => {
       healthStatus: values.healthStatus
     };
     try {
-      const url = flockId ? `http://localhost:5000/api/flock/${flockId}` : 'http://localhost:5000/api/flock';
+      const url = flockId ? `${BASE_URL}/flock/${flockId}` : `${BASE_URL}/flock`;
       const method = flockId ? 'PUT' : 'POST';
       const response = await fetch(url, {
         method,
@@ -151,7 +152,7 @@ const Flock = () => {
 
   const handleExport = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/flock/export', {
+      const response = await fetch(`${BASE_URL}/flock/export`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
