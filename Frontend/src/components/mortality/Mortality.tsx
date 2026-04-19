@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, notification, Popconfirm, Card, Typography, Space } from 'antd';
+import { Table, Button, Modal, Form, Input, InputNumber, notification, Popconfirm, Card, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import './mortality.css';
 import { BASE_URL } from '../../services/api';

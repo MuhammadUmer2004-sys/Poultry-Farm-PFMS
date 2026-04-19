@@ -19,5 +19,27 @@ export const api = {
         }
 
         return response.json();
+    },
+
+    get(endpoint: string) {
+        return this.fetchWithAuth(endpoint, { method: 'GET' });
+    },
+
+    post(endpoint: string, data: any) {
+        return this.fetchWithAuth(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    put(endpoint: string, data: any) {
+        return this.fetchWithAuth(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    delete(endpoint: string) {
+        return this.fetchWithAuth(endpoint, { method: 'DELETE' });
     }
 };

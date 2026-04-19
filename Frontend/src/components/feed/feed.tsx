@@ -4,7 +4,6 @@ import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import './feed.css';
 import { BASE_URL } from '../../services/api';
 
-const { Option } = Select;
 
 const Feed = () => {
     const [data, setData] = useState<any[]>([]);
