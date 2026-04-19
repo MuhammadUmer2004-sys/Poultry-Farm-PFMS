@@ -10,36 +10,45 @@ dotenv.config();
 // Initialize app
 const app = express();
 
-// ✅ Middleware - allow all origins for Vercel compatibility
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+// ✅ Middleware
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// ✅ MongoDB Connection (no process.exit - breaks Vercel serverless)
-let isConnected = false;
-let lastError = null;
+// ✅ MongoDB Connection with proper serverless caching
+let cachedConnection = null;
 
 const connectDB = async () => {
-  if (isConnected) return;
+  // Return cached connection if already connected
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
+    cachedConnection = await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 10000,
+      bufferCommands: false,
     });
-    isConnected = true;
-    lastError = null;
     console.log('✅ MongoDB connected');
+    return cachedConnection;
   } catch (err) {
-    lastError = err.message;
     console.error('❌ MongoDB connection error:', err.message);
-    // Do NOT call process.exit() - it crashes Vercel serverless functions
+    cachedConnection = null;
+    throw err;
   }
 };
 
-connectDB();
+// ✅ Middleware: Connect DB before every request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('DB connection middleware error:', err.message);
+    next(); // Still proceed even if DB fails (routes will handle errors)
+  }
+});
 
 // ✅ Route Imports
 const authRoutes = require('./routes/authRoutes');
@@ -57,12 +66,14 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 // ✅ Health check route
 app.get('/api/health', (req, res) => {
+  const state = mongoose.connection.readyState;
+  const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
   res.json({
     status: 'OK',
-    db: isConnected ? 'connected' : 'disconnected',
-    error: lastError || null,
+    db: states[state] || 'unknown',
+    readyState: state,
     mongo_uri_set: !!process.env.MONGO_URI,
-    uri_preview: process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 30) + '...' : 'NOT SET'
+    uri_preview: process.env.MONGO_URI ? process.env.MONGO_URI.substring(0, 35) + '...' : 'NOT SET'
   });
 });
 
