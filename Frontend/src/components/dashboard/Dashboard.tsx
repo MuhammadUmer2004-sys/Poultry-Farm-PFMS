@@ -5,7 +5,7 @@ import { ArrowUpOutlined, ArrowDownOutlined, WarningOutlined } from '@ant-design
 import axios from '../../utils/axiosInstance';
 import { Line } from '@ant-design/charts';
 
-import './Dashboard.css';
+import './dashboard.css';
 
 interface DashboardData {
   totalEggsProduced: number;
